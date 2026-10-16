@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: suibe-campus-hub
+    runtime: docker
+    plan: free
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_SECRET
+        generateValue: true
+      - key: ADMIN_TOKEN
+        generateValue: true

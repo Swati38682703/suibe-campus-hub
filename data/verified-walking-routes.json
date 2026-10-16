@@ -1,0 +1,46 @@
+[
+  {
+    "start": "LIB",
+    "end": "XUESI",
+    "distanceM": 270,
+    "providerMinutes": 4,
+    "sourceUrl": "https://j.map.baidu.com/t/u3V5zv",
+    "checkedAt": "2026-10-15",
+    "evidence": "baidu-library-teaching.png",
+    "startName": "上海对外经贸大学图书馆(新馆)",
+    "endName": "上海对外经贸大学(松江校区)-学思楼"
+  },
+  {
+    "start": "LIB",
+    "end": "INFO",
+    "distanceM": 160,
+    "providerMinutes": 3,
+    "sourceUrl": "https://j.map.baidu.com/t/OKnDzv",
+    "checkedAt": "2026-10-15",
+    "evidence": "baidu-library-information.png",
+    "startName": "上海对外经贸大学图书馆(新馆)",
+    "endName": "上海对外经贸大学松江校区-图文信息大楼"
+  },
+  {
+    "start": "LIB",
+    "end": "GYM",
+    "distanceM": 660,
+    "providerMinutes": 10,
+    "sourceUrl": "https://j.map.baidu.com/t/SXxDzv",
+    "checkedAt": "2026-10-15",
+    "evidence": "baidu-library-gym.png",
+    "startName": "上海对外经贸大学图书馆(新馆)",
+    "endName": "上海对外经贸大学体育馆"
+  },
+  {
+    "start": "LIB",
+    "end": "LQ",
+    "distanceM": 520,
+    "providerMinutes": 8,
+    "sourceUrl": "https://j.map.baidu.com/t/qSWDzv",
+    "checkedAt": "2026-10-15",
+    "evidence": "baidu-library-lequn.png",
+    "startName": "上海对外经贸大学图书馆(新馆)",
+    "endName": "上海对外经贸大学(松江校区)-乐群楼"
+  }
+]

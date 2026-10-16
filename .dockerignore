@@ -1,0 +1,11 @@
+.git
+.venv
+**/node_modules
+**/__pycache__
+.pytest_cache
+frontend/dist
+*.db
+.env
+.local-secret
+tmp
+docs/preview-home.jpg
