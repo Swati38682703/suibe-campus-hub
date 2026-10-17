@@ -3,7 +3,7 @@ export interface Competition {
  id:string; title:string; scope:'campus'|'major'; field:string; level:string; organizer:string;
  summary:string; audience:string; team:string; schedule:string; published?:string;
  registrationStart?:string; deadline?:string; endedOn?:string; source:string; sourceUrl:string;
- website?:string; checked:string; notice:string; deadlineTime?:string; sourceFormat?:'pdf';
+ website?:string; checked:string; notice:string; deadlineTime?:string; sourceFormat?:'pdf'|'wechat'|'website';
 }
 export const COMPETITIONS=competitionRows as Competition[];
 export type CompetitionStatus='open'|'upcoming'|'closed'|'unknown';

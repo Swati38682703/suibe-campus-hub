@@ -22,7 +22,7 @@ test('deadline calendar uses an exclusive end date and folds UTF8 safely',()=>{
 });
 
 
-test('campus PDF notices separate registration from submissions and preserve the corrected year',()=>{
+test('campus notices separate registration from submissions and preserve the corrected year',()=>{
  const byId=id=>COMPETITIONS.find(c=>c.id===id);
  const ai=byId('suibe-ai-innovation-2026');
  assert.equal(ai.deadline,'2026-11-05');
@@ -35,9 +35,16 @@ test('campus PDF notices separate registration from submissions and preserve the
  assert.equal(byId('suibe-constitution-2026').deadline,'2026-10-11');
  assert.equal(byId('suibe-constitution-2026').deadlineTime,'12:00');
  assert.equal(competitionStatus(byId('suibe-constitution-2026'),'2026-10-17'),'closed');
- for(const c of COMPETITIONS.filter(c=>c.sourceFormat==='pdf')){
-  assert.ok(c.sourceUrl.endsWith(c.id+'.pdf'));
-  assert.ok(!c.website);
- }
+ for(const c of COMPETITIONS){assert.ok(!c.sourceUrl.endsWith('.pdf'));}
+ const sourceLinks={
+  'suibe-ai-innovation-2026':'BHPqQ-lv4oLskrjKJpuLhw',
+  'suibe-finance-case-29':'FcM-3JuyKF139paXWCBjHw',
+  'suibe-business-2027':'nFXJu25n8padxK4k3ZmKDg',
+  'suibe-chinese-teaching-4':'AygDsSG0K_dsNwQ3z8V3SQ',
+  'suibe-constitution-2026':'dXoctTHpowvpbEm6XiPhnw',
+  'suibe-wto-moot-7':'zxVm5ruOUQ34VLMiwOAHjw'
+ };
+ for(const [id,slug] of Object.entries(sourceLinks)){assert.equal(byId(id).sourceUrl,'https://mp.weixin.qq.com/s/'+slug);}
+ assert.equal(competitionStatus(byId('suibe-wto-moot-7'),'2026-10-17'),'unknown');
  assert.equal(new Set(COMPETITIONS.map(c=>c.id)).size,COMPETITIONS.length);
 });

@@ -13,7 +13,7 @@ type Row=DemoPatch;
 type Field={key:string;label:string;type?:string;required?:boolean;options?:[string,string][];wide?:boolean};
 const sections=[{id:'competitions' as const,label:'赛事管理',icon:Trophy,to:'/competitions'},{id:'dining' as const,label:'食堂管理',icon:Utensils,to:'/dining'},{id:'teachers' as const,label:'教师管理',icon:Users,to:'/teachers'},{id:'courseReviews' as const,label:'课程点评审核',icon:MessageSquare,to:'/courses'},{id:'announcements' as const,label:'公告管理',icon:Bell,to:'/announcements'}];
 const fields:Record<DemoKind,Field[]>={
- competitions:[{key:'title',label:'赛事名称',required:true,wide:true},{key:'scope',label:'赛事范围',options:[['campus','校内赛事'],['major','大型赛事']]},{key:'field',label:'比赛方向',required:true},{key:'deadline',label:'报名截止日期',type:'date'},{key:'deadlineTime',label:'截止时刻',type:'time'},{key:'audience',label:'参赛对象',required:true,wide:true},{key:'team',label:'组队与参赛形式',required:true,wide:true},{key:'summary',label:'赛事简介',type:'textarea',required:true,wide:true},{key:'schedule',label:'赛程安排',type:'textarea',wide:true},{key:'notice',label:'参赛须知',type:'textarea',wide:true},{key:'source',label:'信息来源',wide:true},{key:'sourceUrl',label:'原文链接（网页或站内 PDF）',wide:true},{key:'organizer',label:'组织单位',wide:true}],
+ competitions:[{key:'title',label:'赛事名称',required:true,wide:true},{key:'scope',label:'赛事范围',options:[['campus','校内赛事'],['major','大型赛事']]},{key:'field',label:'比赛方向',required:true},{key:'deadline',label:'报名截止日期',type:'date'},{key:'deadlineTime',label:'截止时刻',type:'time'},{key:'audience',label:'参赛对象',required:true,wide:true},{key:'team',label:'组队与参赛形式',required:true,wide:true},{key:'summary',label:'赛事简介',type:'textarea',required:true,wide:true},{key:'schedule',label:'赛程安排',type:'textarea',wide:true},{key:'notice',label:'参赛须知',type:'textarea',wide:true},{key:'source',label:'信息来源',wide:true},{key:'sourceUrl',label:'原文链接（公众号或官网）',wide:true},{key:'organizer',label:'组织单位',wide:true}],
  dining:[{key:'name',label:'菜品名称',required:true},{key:'restaurant',label:'餐厅',options:[['一食堂','一食堂'],['文贸餐厅','文贸餐厅']]},{key:'window',label:'楼层 / 窗口',required:true},{key:'price',label:'价格（元，可留空）',type:'number'},{key:'tag',label:'口味 / 分类'},{key:'description',label:'菜品介绍',type:'textarea',wide:true},{key:'source_url',label:'信息来源链接',wide:true}],
  teachers:[{key:'name',label:'教师姓名',required:true},{key:'pinyin',label:'拼音 / 首字母',required:true},{key:'department',label:'所属学院',required:true},{key:'title',label:'职称',required:true},{key:'email',label:'公开工作邮箱',type:'email'},{key:'office',label:'办公地点'},{key:'research',label:'研究方向',type:'textarea',wide:true},{key:'source',label:'信息来源',wide:true}],
  announcements:[{key:'title',label:'公告标题',required:true,wide:true},{key:'department',label:'发布部门',required:true},{key:'date',label:'发布日期',type:'date',required:true},{key:'content',label:'公告内容',type:'textarea',required:true,wide:true},{key:'pinned',label:'置顶状态',options:[['false','普通公告'],['true','置顶公告']]},{key:'source',label:'信息来源'}],
@@ -41,7 +41,8 @@ export default function AdminDemo(){
    value.checked=localDay();value.level=value.scope==='campus'?'校内赛事':'大型赛事';
    if(!value.deadline){value.deadline='';value.deadlineTime=''}
    if(value.endedOn&&value.deadline&&value.endedOn<value.deadline)value.endedOn='';
-   value.sourceFormat=value.sourceUrl?.split('?')[0].endsWith('.pdf')?'pdf':null;
+   if(value.sourceUrl?.split('?')[0].toLowerCase().endsWith('.pdf')){notice('赛事原文请填写公众号或官网页面链接');return}
+   value.sourceFormat=value.sourceUrl?.startsWith('https://mp.weixin.qq.com/')?'wechat':'website';
    // A new source link replaces the old button destination as well.
    if(value.sourceUrl!==rows.find(r=>r.id===value.id)?.sourceUrl)value.website=value.sourceUrl;
   }

@@ -58,7 +58,7 @@ def test_bailian_request_receives_grounded_site_records(client,monkeypatch):
     monkeypatch.setattr(agent.httpx,'AsyncClient',FakeClient)
     result=client.post('/api/agent/chat',json={'message':'AI创新应用大赛什么时候截止报名？'}).json()
     assert result['mode']=='llm' and len(calls)==1
-    assert result['citations'][0]['url'].endswith('suibe-ai-innovation-2026.pdf')
+    assert result['citations'][0]['url']=='https://mp.weixin.qq.com/s/BHPqQ-lv4oLskrjKJpuLhw'
     assert result['actions'][0]['href']=='/competitions'
 
 
