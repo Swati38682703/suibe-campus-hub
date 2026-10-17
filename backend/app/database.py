@@ -61,7 +61,9 @@ def initialize():
                 for i,row in enumerate(catalogs()[k]):
                     s.add(Record(kind=k,id=str(row.get('id',i)),data=row))
         for row in GUIDE:
-            if not s.get(Record,('knowledge',row['id'])):
+            if row['id']=='life-dining':
+                s.merge(Record(kind='knowledge',id=row['id'],data=row))
+            elif not s.get(Record,('knowledge',row['id'])):
                 s.add(Record(kind='knowledge',id=row['id'],data=row))
         for row in CALENDARS:
             existing=s.get(Record,('calendar',row['id']))

@@ -6,7 +6,10 @@ def payload(client, email='food@example.com'):
 
 def test_dining_review_lifecycle(client):
     rows=client.get('/api/dining').json()
-    assert len(rows)==12 and all(d['demo'] for d in rows)
+    assert len([d for d in rows if d['demo']])==12
+    current=[d for d in rows if not d['demo']]
+    assert {d['restaurant'] for d in current}=={'文贸餐厅'}
+    assert all(d['price'] is None and d['source_url'].endswith('bNB98UdWS7k3B3LyHk3-pA') for d in current)
     result=client.post('/api/dining/d01/reviews',json=payload(client))
     assert result.status_code==201
     value=result.json(); rid=value['id']
@@ -30,3 +33,14 @@ def test_invalid_dining_reviews(client):
     assert client.post('/api/dining/d02/reviews',json=body).status_code==422
     body=payload(client,'captcha@example.com');body['captcha_answer']='WRONG'
     assert client.post('/api/dining/d02/reviews',json=body).status_code==400
+
+
+def test_current_dishes_have_separate_review_targets(client):
+    result=client.post('/api/dining/wenmao-shredded-chicken-rice/reviews',json=payload(client,'current@example.com'))
+    assert result.status_code==201
+    headers={'X-Admin-Token':'test-admin-only'}
+    rid=result.json()['id']
+    assert client.put('/api/admin/reviews/'+rid,json={'status':'normal'},headers=headers).status_code==200
+    rows={d['id']:d for d in client.get('/api/dining').json()}
+    assert rows['wenmao-shredded-chicken-rice']['count']==1
+    assert all(r['id']!=rid for r in rows['d01']['reviews'])

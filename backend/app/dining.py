@@ -1,4 +1,4 @@
-"""Explicit demonstration menus; shared reviews use the existing moderation lifecycle."""
+"""Source-backed dining entries and a separate legacy demonstration menu."""
 from fastapi import APIRouter
 from .database import Session, Review
 
@@ -18,6 +18,18 @@ MENU = [
     ('d12','第三餐厅','2F · 风味档','咖喱土豆饭',13,'🍛','微辣','温柔浓郁的咖喱时刻'),
 ]
 DISHES = [dict(id=i,restaurant=r,window=w,name=n,price=p,emoji=e,tag=t,description=d,semester='2026-2027-1',demo=True) for i,r,w,n,p,e,t,d in MENU]
+
+SOURCE_URL = 'https://mp.weixin.qq.com/s/bNB98UdWS7k3B3LyHk3-pA'
+# New IDs keep old demonstration reviews and photo stamps attached to their original entries.
+DISHES += [dict(id=i,restaurant='文贸餐厅',window='窗口待核实',name=n,price=None,emoji=e,tag=t,
+    description='学校后勤 2026-10-07 开业文章提及；楼层、窗口与当日供应以现场为准。',
+    semester='2026-2027-1',demo=False,source_url=SOURCE_URL,published_at='2026-10-07')
+    for i,n,e,t in [
+        ('wenmao-shredded-chicken-rice','手撕鸡饭','🍚','风味饭'),
+        ('wenmao-jiangxi','江西小炒','🥘','小炒'),
+        ('wenmao-light-meal','四季轻食','🥗','轻食'),
+        ('wenmao-griddle-rice','烤盘饭','🍛','风味饭'),
+    ]]
 
 @router.get('/api/dining')
 def dining():
