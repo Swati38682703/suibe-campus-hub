@@ -45,6 +45,12 @@ test('campus notices separate registration from submissions and preserve the cor
   'suibe-wto-moot-7':'zxVm5ruOUQ34VLMiwOAHjw'
  };
  for(const [id,slug] of Object.entries(sourceLinks)){assert.equal(byId(id).sourceUrl,'https://mp.weixin.qq.com/s/'+slug);}
- assert.equal(competitionStatus(byId('suibe-wto-moot-7'),'2026-10-17'),'unknown');
+ const wto=byId('suibe-wto-moot-7');
+ assert.equal(wto.deadline,'2026-10-23');
+ assert.equal(wto.deadlineTime,'18:00');
+ assert.ok(wto.team.includes('3–5'));
+ assert.equal(competitionStatus(wto,'2026-10-17'),'open');
+ assert.ok(wto.notice.includes('截图未显示年份'));
+ assert.ok(wto.notice.includes('https://www.wjx.top/vm/hxAe6bU.aspx#'));
  assert.equal(new Set(COMPETITIONS.map(c=>c.id)).size,COMPETITIONS.length);
 });
