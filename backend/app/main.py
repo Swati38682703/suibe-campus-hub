@@ -19,7 +19,7 @@ from .config import load_environment
 load_environment()
 from .database import initialize, items, get, Session, Record, Review, Feedback, ROOT
 from .services import available_rooms, route, search, course_detail
-from .agent import respond
+from .agent import respond,ModelServiceError
 
 @asynccontextmanager
 async def lifespan(app):
@@ -66,6 +66,11 @@ def catalog(request: Request,q: str='',dept: str='',title: str=''):
     rows=[r for r in rows if q.casefold() in ' '.join(str(v) for v in r.values()).casefold() and (not dept or r.get('department')==dept) and (not title or r.get('title')==title)]
     if kind=='courses': return [course_detail(r['id']) for r in rows]
     return rows
+
+@app.get('/api/competitions')
+def competitions():
+    from .site_knowledge import COMPETITIONS
+    return COMPETITIONS
 
 @app.get('/api/teachers/{id}')
 @app.get('/api/announcements/{id}')
@@ -230,6 +235,7 @@ class ChatInput(BaseModel):
 async def chat(payload: ChatInput,request: Request):
     limited(request,'agent',20)
     try: return await respond(payload.message,[m.model_dump() for m in payload.history],[m.model_dump() for m in payload.timetable] if payload.share_timetable else [],payload.share_timetable)
+    except ModelServiceError as e: raise HTTPException(503,str(e))
     except (ValueError,KeyError,TypeError): raise HTTPException(422,'任务参数无效，请检查日期、节次或建筑')
     except Exception:
         raise HTTPException(502,'模型服务暂不可用，请检查本地配置或切换离线模式')
