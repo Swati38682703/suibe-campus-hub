@@ -19,6 +19,8 @@ from .config import load_environment
 load_environment()
 from .database import initialize, items, get, Session, Record, Review, Feedback, ROOT
 from .services import available_rooms, route, search, course_detail
+from .school_rooms import SchoolRoomError
+from .site_knowledge import shanghai_day
 from .agent import respond,ModelServiceError
 
 @asynccontextmanager
@@ -80,13 +82,14 @@ def detail(id: str,request: Request):
     return r
 
 @app.get('/api/rooms/available')
-def rooms(date: str=date.today().isoformat(),periods: str='3,4',buildings: str='',min_capacity: int=0,q: str='',types: str=''):
-    try: return available_rooms(date,[int(p) for p in periods.split(',')],buildings.split(',') if buildings else None,min_capacity,q,types)
+def rooms(date: str='',periods: str='3,4',buildings: str='',min_capacity: int=0,q: str='',types: str=''):
+    try: return available_rooms(date or shanghai_day(),[int(p) for p in periods.split(',')],buildings.split(',') if buildings else None,min_capacity,q,types)
     except ValueError as e: raise HTTPException(422,str(e))
+    except SchoolRoomError as e: raise HTTPException(503,str(e))
 
 @app.get('/api/rooms/{id}')
-def room(id: str,day: str=date.today().isoformat()):
-    rows=rooms(day,'3,4',q=id)
+def room(id: str,day: str=''):
+    rows=rooms(day,'3,4')
     r=next((r for r in rows if r['id']==id),None)
     if not r: raise HTTPException(404,'教室不存在')
     return r

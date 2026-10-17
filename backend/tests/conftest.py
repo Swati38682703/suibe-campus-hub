@@ -8,6 +8,7 @@ task_tmp=tempfile.TemporaryDirectory()
 os.environ['DATABASE_URL']='sqlite:///'+str(Path(task_tmp.name)/'test.db')
 os.environ['APP_SECRET']='test-secret-only'
 os.environ['ADMIN_TOKEN']='test-admin-only'
+os.environ['SCHOOL_ROOMS_MODE']='demo'
 os.environ.pop('LLM_API_KEY',None)
 from fastapi.testclient import TestClient
 from backend.app.main import app,attempts

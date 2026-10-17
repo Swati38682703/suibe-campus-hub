@@ -32,12 +32,12 @@ def test_study_workflow_tries_next_free_slot_and_preserves_links(client,monkeypa
     queries=[]
     def rooms(day,periods,min_capacity=0):
         queries.append((day,periods,min_capacity))
-        return [] if periods==[8,9] else [dict(id='A101',name='A101',building='A',capacity=60,available=True)]
+        return [] if periods==[8,9] else [dict(id='A101',name='A101',building='A',capacity=60,available=True,source='学校教室占用每日总览',updated_at='2026-10-17T12:00:00+08:00')]
     monkeypatch.setattr(agent,'available_rooms',rooms)
     data=client.post('/api/agent/chat',json={'message':'2026-10-16 根据我的课表找下午连续两节空档，推荐至少40人的自习教室，从图书馆导航','share_timetable':True,'timetable':[course()]}).json()
     assert queries==[('2026-10-16',[8,9],40),('2026-10-16',[9,10],40)]
     assert [t['tool'] for t in data['trace']]==['read_timetable','find_free_periods','find_rooms','find_rooms','plan_route']
-    assert '6、7' in data['answer'] and '9、10' in data['answer'] and '演示' in data['answer']
+    assert '6、7' in data['answer'] and '9、10' in data['answer'] and '学校教室占用每日总览' in data['answer'] and '2026-10-17T12:00:00+08:00' in data['answer']
     assert '/rooms/A101?date=2026-10-16' in [a['href'] for a in data['actions']]
     link=next(a['href'] for a in data['actions'] if a['label']=='查看本时段教室')
     assert parse_qs(urlparse(link).query)=={'date':['2026-10-16'],'periods':['9,10'],'min_capacity':['40']}

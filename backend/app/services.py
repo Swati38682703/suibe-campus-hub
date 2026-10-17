@@ -1,3 +1,4 @@
+import os
 import heapq
 import math
 from datetime import date
@@ -9,6 +10,9 @@ def available_rooms(day: str, periods: list[int], buildings: list[str] | None=No
     date.fromisoformat(day)
     if not periods or any(p<1 or p>14 for p in periods):
         raise ValueError('节次必须为 1–14')
+    if os.getenv('SCHOOL_ROOMS_MODE','school')!='demo':
+        from .school_rooms import available_rooms as school_available_rooms
+        return school_available_rooms(day,periods,buildings,min_capacity,q,room_type)
     occupancies = items('occupancies')
     result=[]
     for index,r in enumerate(items('rooms')):
