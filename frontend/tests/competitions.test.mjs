@@ -20,3 +20,24 @@ test('deadline calendar uses an exclusive end date and folds UTF8 safely',()=>{
  for(const line of output.split('\r\n'))assert.ok(Buffer.byteLength(line,'utf8')<=75);
  assert.throws(()=>deadlineICS(COMPETITIONS.find(c=>c.id==='mcm-2027')));
 });
+
+
+test('campus PDF notices separate registration from submissions and preserve the corrected year',()=>{
+ const byId=id=>COMPETITIONS.find(c=>c.id===id);
+ const ai=byId('suibe-ai-innovation-2026');
+ assert.equal(ai.deadline,'2026-11-05');
+ assert.equal(competitionStatus(ai,'2026-10-17'),'open');
+ assert.ok(ai.team.includes('至少包含 1 名研究生'));
+ assert.equal(byId('suibe-business-2027').deadline,'2026-10-15');
+ assert.equal(competitionStatus(byId('suibe-business-2027'),'2026-10-17'),'closed');
+ assert.equal(byId('suibe-chinese-teaching-4').deadline,'2026-10-16');
+ assert.equal(byId('suibe-chinese-teaching-4').deadlineTime,'13:00');
+ assert.equal(byId('suibe-constitution-2026').deadline,'2026-10-11');
+ assert.equal(byId('suibe-constitution-2026').deadlineTime,'12:00');
+ assert.equal(competitionStatus(byId('suibe-constitution-2026'),'2026-10-17'),'closed');
+ for(const c of COMPETITIONS.filter(c=>c.sourceFormat==='pdf')){
+  assert.ok(c.sourceUrl.endsWith(c.id+'.pdf'));
+  assert.ok(!c.website);
+ }
+ assert.equal(new Set(COMPETITIONS.map(c=>c.id)).size,COMPETITIONS.length);
+});
