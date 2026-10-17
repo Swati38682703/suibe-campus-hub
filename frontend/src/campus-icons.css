@@ -50,3 +50,5 @@
  .campus-assistant .chat-input textarea{font-size:16px}.campus-assistant .message-body>p{font-size:12px}.campus-assistant .chat-privacy{font-size:10px;line-height:1.8}
 }
 @media(prefers-reduced-motion:reduce){.campus-assistant .prompt-card{transition:none}}
+
+.campus-assistant .chat-messages.welcome-state{max-height:none;overflow:visible}
