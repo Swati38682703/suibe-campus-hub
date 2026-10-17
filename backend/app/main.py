@@ -240,6 +240,14 @@ def overview(x_admin_token: str=Header(default='')):
     with Session() as s:
         return dict(reviews=[dict(id=r.id,course_id=r.course_id,nickname=r.nickname,text=r.text,overall=r.overall,status=r.status) for r in s.query(Review).all()],feedback=[dict(id=f.id,**f.data) for f in s.query(Feedback).all()])
 
+@app.get('/api/admin/course-reviews')
+def course_reviews(x_admin_token: str=Header(default='')):
+    admin(x_admin_token)
+    with Session() as s:
+        courses={r.id:r.data for r in s.query(Record).filter_by(kind='courses').all()}
+        rows=s.query(Review).filter(~Review.course_id.startswith('food:')).order_by(Review.created_at.desc()).all()
+        return [dict(id=r.id,course_id=r.course_id,course_name=courses.get(r.course_id,{}).get('name',r.course_id),teacher=courses.get(r.course_id,{}).get('teacher',''),semester=r.semester,nickname=r.nickname,text=r.text,overall=r.overall,dimensions=r.dimensions,tags=r.tags,status=r.status,created_at=r.created_at) for r in rows]
+
 class Moderation(BaseModel):
     status: Literal['normal','hidden']
 @app.put('/api/admin/reviews/{id}')

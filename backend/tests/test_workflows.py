@@ -36,6 +36,14 @@ def test_review_moderation_privacy_unique_and_ownership(client):
     rid=result['id']
     assert client.put('/api/admin/reviews/'+rid,json={'status':'normal'}).status_code==403
     headers={'X-Admin-Token':'test-admin-only'}
+    assert client.get('/api/admin/course-reviews').status_code==403
+    rows=client.get('/api/admin/course-reviews',headers=headers).json()
+    row=next(r for r in rows if r['id']==rid)
+    assert row['status']=='pending' and row['course_id']=='c0'
+    assert row['course_name']==client.get('/api/courses/c0').json()['name']
+    assert row['dimensions']==[4,3,4,5] and row['tags']==['课程干货多']
+    assert row['semester'] and row['created_at']
+    assert not {'email','identity_hash','token_hash','management_token'} & row.keys()
     assert client.put('/api/admin/reviews/'+rid,json={'status':'normal'},headers=headers).status_code==200
     course=client.get('/api/courses/c0').json()
     assert course['count']==1 and course['average']==4 and course['distribution']==[0,0,0,1,0]

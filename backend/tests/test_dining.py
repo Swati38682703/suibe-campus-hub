@@ -17,6 +17,7 @@ def test_dining_review_lifecycle(client):
     assert dish()['count']==0
     assert client.put('/api/admin/reviews/'+rid,json={'status':'normal'}).status_code==403
     headers={'X-Admin-Token':'test-admin-only'}
+    assert all(r['id']!=rid for r in client.get('/api/admin/course-reviews',headers=headers).json())
     assert client.put('/api/admin/reviews/'+rid,json={'status':'normal'},headers=headers).status_code==200
     assert dish()['average']==4 and dish()['count']==1
     assert not {'identity_hash','token_hash','email','management_token'} & dish()['reviews'][0].keys()
