@@ -1,3 +1,4 @@
+import re
 import os
 import heapq
 import math
@@ -64,7 +65,17 @@ def route(start: str, end: str, speed: int=80, accessible: bool=False):
 
 def search(q: str):
     if not q.strip(): return []
-    return [dict(kind=kind,**row) for kind in ['teachers','courses','rooms','announcements','buildings','knowledge'] for row in items(kind) if q.casefold() in ' '.join(str(v) for v in row.values()).casefold()][:50]
+    kinds=['teachers','courses','announcements','buildings','knowledge']
+    if os.getenv('SCHOOL_ROOMS_MODE','school')=='demo':kinds.append('rooms')
+    rows=[dict(kind=kind,**row) for kind in kinds for row in items(kind) if q.casefold() in ' '.join(str(v) for v in row.values()).casefold()]
+    room_match=re.search(r'(?:S[ABCD]{2}|S?[ABCD]|XXL)\d{1,4}',q,re.I)
+    if os.getenv('SCHOOL_ROOMS_MODE','school')!='demo' and (room_match or '教室' in q):
+        from .school_rooms import SchoolRoomError
+        from .site_knowledge import shanghai_day
+        room_query=re.sub(r'^S([ABCD])\1',r'S\1',room_match[0].upper()) if room_match else ''
+        try:rows=[dict(kind='rooms',**r) for r in available_rooms(shanghai_day(),[3,4],q=room_query)]+rows
+        except SchoolRoomError:pass
+    return rows[:50]
 
 def course_detail(id):
     from .database import Session, Review

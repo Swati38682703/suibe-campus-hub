@@ -23,7 +23,7 @@ function Shell(){
  const location=useLocation(),navigate=useNavigate();
  const isAdminDemo=location.pathname==='/admin';
  const backTarget=location.pathname.startsWith('/rooms/')?'/rooms'+(location.search||''):location.pathname.startsWith('/courses/')?'/courses':location.pathname==='/admin/server'?'/admin':'/';
- const goBack=()=>{if(Number(window.history.state?.idx)>0)navigate(-1);else navigate(backTarget)};
+ const goBack=()=>{if(Number(window.history.state?.idx)>0)navigate(-1);else navigate(backTarget,{replace:true})};
  useEffect(()=>{setMobile(false);window.scrollTo(0,0)},[location.pathname]);
  useEffect(()=>{if(notice){const timer=setTimeout(()=>setNotice(''),5000);return()=>clearTimeout(timer)}},[notice]);
  return <NoticeContext.Provider value={setNotice}><div className="app-shell">
@@ -39,6 +39,6 @@ function Shell(){
  </div></NoticeContext.Provider>
 }
 
-function SearchPage(){const {search}=useLocation();const query=new URLSearchParams(search).get('q')||'';const [rows,setRows]=useState<any[]>([]),[error,setError]=useState('');useEffect(()=>{api('/search?q='+encodeURIComponent(query)).then(setRows).catch(e=>setError(e.message))},[query]);const urls:Record<string,string>={teachers:'/teachers',courses:'/courses/',rooms:'/rooms/',announcements:'/announcements?id=',buildings:'/map?building=',knowledge:'/assistant'};return <><PageTitle eyebrow="SEARCH" title={'搜索：'+query} description="跨教室、教师、课程、公告与校园知识查询"/>{error&&<div className="error">{error}</div>}{rows.length?<div className="result-list">{rows.map(r=><Link className="panel search-result" key={r.kind+r.id} to={urls[r.kind]+(['teachers','knowledge'].includes(r.kind)?'':r.id)}><span className="badge">{r.kind}</span><h3>{r.name||r.title}</h3><p>{r.department||r.text||r.description||r.source}</p><ArrowRight size={16}/></Link>)}</div>:<Empty>没有找到结果，试试“图书馆”“A101”或“数据分析”。</Empty>}</>}
+function SearchPage(){const {search}=useLocation();const query=new URLSearchParams(search).get('q')||'';const [rows,setRows]=useState<any[]>([]),[error,setError]=useState('');useEffect(()=>{api('/search?q='+encodeURIComponent(query)).then(setRows).catch(e=>setError(e.message))},[query]);const urls:Record<string,string>={teachers:'/teachers',courses:'/courses/',rooms:'/rooms/',announcements:'/announcements?id=',buildings:'/map?building=',knowledge:'/assistant'};return <><PageTitle eyebrow="SEARCH" title={'搜索：'+query} description="跨教室、教师、课程、公告与校园知识查询"/>{error&&<div className="error">{error}</div>}{rows.length?<div className="result-list">{rows.map(r=><Link className="panel search-result" key={r.kind+r.id} to={urls[r.kind]+(['teachers','knowledge'].includes(r.kind)?'':r.id)}><span className="badge">{({teachers:'教师',courses:'课程',rooms:'教室',announcements:'公告',buildings:'校园建筑',knowledge:'办事指南'} as Record<string,string>)[r.kind]||'校园信息'}</span><h3>{r.name||r.title}</h3><p>{r.department||r.text||r.description||r.source}</p><ArrowRight size={16}/></Link>)}</div>:<Empty>没有找到结果，试试“图书馆”“A101”或“数据分析”。</Empty>}</>}
 
 createRoot(document.getElementById('root')!).render(<BrowserRouter><Shell/></BrowserRouter>);

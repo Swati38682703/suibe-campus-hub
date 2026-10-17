@@ -9,3 +9,5 @@
 }
 @media(max-width:360px){main{padding:17px 12px}.date-pill{font-size:9px}.hero{padding:18px}.hero h2{font-size:23px}.hero .campus-art{width:44%;right:-23px}.hero p{max-width:190px}.food-card-foot>span{flex-wrap:wrap}.food-form-row{grid-template-columns:1fr}.food-photo-panel .primary{margin-top:8px}.food-captcha{flex-wrap:wrap}}
 @media print{.mobile-bottom-nav{display:none!important}.main-shell{padding-bottom:0}}
+
+@media(max-width:600px){.icon-button{min-width:44px;min-height:44px}.period-buttons{flex-wrap:wrap}.period-buttons button{min-width:40px;min-height:44px}.food-stars button{min-width:44px;min-height:44px}.modal .panel-heading{position:sticky;top:-20px;z-index:2;background:#fff;padding:10px 0;margin-top:-10px}.captcha-row{flex-wrap:wrap}.captcha-row input{min-width:0;flex:1;max-width:100%}.food-dialog-head{position:sticky;top:-19px;z-index:2;background:#fff;padding:8px 0}.mobile-bottom-nav{z-index:18}}

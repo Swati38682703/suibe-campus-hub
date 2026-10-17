@@ -90,7 +90,8 @@ def rooms(date: str='',periods: str='3,4',buildings: str='',min_capacity: int=0,
 @app.get('/api/rooms/{id}')
 def room(id: str,day: str=''):
     rows=rooms(day,'3,4')
-    r=next((r for r in rows if r['id']==id),None)
+    r=next((r for r in rows if r['id'].casefold()==id.casefold()),None)
+    if not r:r=next((r for r in rows if r['name'].casefold()==id.casefold() or r.get('data_mode')=='school' and r['building']==id[:1].upper() and r['name'].casefold()==('S'+id).casefold()),None)
     if not r: raise HTTPException(404,'教室不存在')
     return r
 

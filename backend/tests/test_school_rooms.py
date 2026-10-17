@@ -35,6 +35,9 @@ def test_school_periods_cache_and_public_fields(client,school):
     assert client.get('/api/rooms/available?date=2026-10-17&periods=7&buildings=A').json()[0]['available'] is True
     assert len(school)==7
     assert client.get('/api/rooms/C20250217003?day=2026-10-17').status_code==200
+    alias=client.get('/api/rooms/A101?day=2026-10-17')
+    assert alias.status_code==200 and alias.json()['name']=='SA101' and alias.json()['building']=='A'
+    assert client.get('/api/rooms/sa101?day=2026-10-17').status_code==200
     result=agent.execute('find_rooms',dict(date='2026-10-17',periods=[7]),[],False)
     assert result['status']=='ok' and result['rooms'] and result['updated_at']
 
@@ -67,3 +70,12 @@ def test_missing_period_flag_does_not_mean_free(client,school,monkeypatch):
     monkeypatch.setattr(school_rooms.httpx,'post',missing_flag)
     assert client.get('/api/rooms/available?date=2026-10-17&periods=6').status_code==503
     assert not school_rooms._cache
+
+
+def test_school_search_uses_official_names_and_links(client,school,monkeypatch):
+    from backend.app import site_knowledge
+    monkeypatch.setattr(site_knowledge,'shanghai_day',lambda:'2026-10-17')
+    rows=client.get('/api/search?q=A101').json()
+    rooms=[r for r in rows if r['kind']=='rooms']
+    assert rooms and all(r['name']=='SA101' and r['data_mode']=='school' for r in rooms)
+    assert client.get('/api/rooms/'+rooms[0]['id']+'?day=2026-10-17').status_code==200
