@@ -22,7 +22,6 @@ export default function Home(){
  const schedule=readSchedule().filter(r=>r.day===((new Date().getDay()+6)%7)+1&&r.semester===semester&&week>0&&parseWeeks(r.weeks).includes(week)).sort((a,b)=>a.start-b.start);
  return <div className="journal-home">
   <div className="journal-greeting"><div><span className="eyebrow">A LITTLE CAMPUS ADVENTURE</span><h1>你好，贸大同学 <span>✦</span></h1><p>把校园日常，过得有点意思。</p></div><Link className="journal-bell" to="/announcements" aria-label="查看校园公告"><Bell size={22}/><i/></Link></div>
-  <div className="demo-entry-cards"><Link to="/competitions"><span>🎓</span><div><strong>用户入口</strong><small>发现校园服务与最新比赛</small></div><ArrowRight size={17}/></Link><Link to="/admin"><span>🛠️</span><div><strong>管理员入口</strong><small>快速编辑，切换视图看效果</small></div><ArrowRight size={17}/></Link></div>
   <section className="discovery-hero"><div><span className="hero-label">SUIBE · 校园探索手账</span><h2>今天，<br/>也去发现校园</h2><p>去熟悉的校园，发现新的小惊喜。</p><Link className="primary" to="/map">开启校园探索 <ArrowRight size={17}/></Link></div><span className="discovery-caption">学思楼 · 漫画印象</span></section>
   {error&&<div className="error" role="alert">校园信息加载失败：{error}</div>}
   <div className="section-heading"><h2>校园百宝箱</h2><Link to="/life-guide">生活指南 <ChevronRight size={14}/></Link></div>
