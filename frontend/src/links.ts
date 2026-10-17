@@ -1,2 +1,2 @@
-export const SCHOOL_ROOM_URL='https://ehallxc.suibe.edu.cn/r/w?cmd=com.awspaas.user.apps.datamanager_html&appId=com.awspaas.user.apps.datamanager&html=echartSJ.html&ext5=0&ext3=FONTEND20221010001_S_&sid=ck';
+export const SCHOOL_ROOM_URL='https://aws.suibe.edu.cn/r/w?cmd=com.awspaas.user.apps.datamanager_html&appId=com.awspaas.user.apps.datamanager&html=echartHt.html&sid=ck&ext5=0&ext3=FONTEND20250217001_S_';
 export const OFFICIAL_LINKS=[{name:'一网通办',url:'https://ehallxc.suibe.edu.cn'},{name:'图书馆',url:'http://lib.suibe.edu.cn'},{name:'本科教学服务（大厅入口）',url:'https://ehallxc.suibe.edu.cn'},{name:'研究生教育服务',url:'https://yjsfw.suibe.edu.cn/gsapp/sys/yjsemaphome/portal/index.do'}];

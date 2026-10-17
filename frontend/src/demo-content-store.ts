@@ -1,4 +1,4 @@
-export type DemoKind='competitions'|'dining'|'announcements';
+export type DemoKind='competitions'|'dining'|'announcements'|'teachers';
 export interface DemoPatch {id:string;hidden?:boolean;[key:string]:any}
 export function mergeDemoRows<T extends {id:string}>(base:T[],patches:DemoPatch[],includeHidden=false):T[]{
  const changes=new Map(patches.map(p=>[p.id,p]));
