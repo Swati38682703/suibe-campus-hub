@@ -79,3 +79,12 @@ def test_hiagent_calendar_keeps_all_events_for_combined_questions():
     answer=json.dumps({'tool_calls':[{'function':{'name':'get_calendar','arguments':{'date':'2026-10-20','topic':'周次 期末'}}}]})
     result=parse_message(answer,agent.TOOLS)
     assert json.loads(result['tool_calls'][0]['function']['arguments'])=={'date':'2026-10-20'}
+
+
+def test_hiagent_missing_container_terminator_keeps_tool_values():
+    answer='{"content":null,"tool_calls":[{"id":"call_1","type":"function","function":{"name":"get_calendar","arguments":{"date":"2026-10-20","topic":"周次"}}]}'
+    result=parse_message(answer,agent.TOOLS)
+    assert result['tool_calls'][0]['function']['name']=='get_calendar'
+    assert json.loads(result['tool_calls'][0]['function']['arguments'])=={'date':'2026-10-20'}
+    with pytest.raises(HiAgentError):
+        parse_message('{"content":"unfinished',agent.TOOLS)

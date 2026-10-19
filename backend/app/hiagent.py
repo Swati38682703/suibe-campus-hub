@@ -13,6 +13,43 @@ def configured():
     return bool(os.getenv('HIAGENT_API_KEY'))
 
 
+
+def load_json(answer):
+    try:
+        return json.loads(answer)
+    except json.JSONDecodeError:
+        # Qwen occasionally omits a closing brace. Repair only missing container
+        # terminators; never alter strings, field names, values, or tool arguments.
+        stack = []
+        output = []
+        quoted = escaped = False
+        pairs = {'{': '}', '[': ']'}
+        for char in answer:
+            if quoted:
+                if escaped:
+                    escaped = False
+                elif char == '\\':
+                    escaped = True
+                elif char == '"':
+                    quoted = False
+            elif char == '"':
+                quoted = True
+            elif char in pairs:
+                stack.append(char)
+            elif char in '}]':
+                opener = '{' if char == '}' else '['
+                if opener not in stack:
+                    raise ValueError('Unmatched JSON terminator')
+                while stack[-1] != opener:
+                    output.append(pairs[stack.pop()])
+                stack.pop()
+            output.append(char)
+        if quoted:
+            raise ValueError('Unterminated JSON string')
+        output.extend(pairs[char] for char in reversed(stack))
+        return json.loads(''.join(output))
+
+
 def parse_message(answer, tools):
     if not isinstance(answer, str):
         raise HiAgentError('学校智能体未返回有效回答。')
@@ -20,7 +57,7 @@ def parse_message(answer, tools):
     if answer.startswith('```') and answer.endswith('```'):
         answer = answer.split('\n', 1)[1].rsplit('```', 1)[0].strip()
     try:
-        message = json.loads(answer)
+        message = load_json(answer)
         if not isinstance(message, dict):
             raise ValueError()
         calls = message.get('tool_calls', [])
