@@ -10,6 +10,7 @@ os.environ['APP_SECRET']='test-secret-only'
 os.environ['ADMIN_TOKEN']='test-admin-only'
 os.environ['SCHOOL_ROOMS_MODE']='demo'
 os.environ.pop('LLM_API_KEY',None)
+os.environ['HIAGENT_API_KEY']=''
 from fastapi.testclient import TestClient
 from backend.app.main import app,attempts
 from backend.app.database import engine

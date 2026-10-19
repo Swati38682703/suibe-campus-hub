@@ -1,3 +1,4 @@
+from .hiagent import configured as hiagent_configured
 import csv
 import hashlib
 import hmac
@@ -53,7 +54,7 @@ def admin(x_admin_token: str=Header(default='')):
     if not expected or not secrets.compare_digest(x_admin_token,expected): raise HTTPException(403,'管理功能未配置或凭证无效')
 
 @app.get('/api/health')
-def health(): return dict(status='ok',data_mode='demo',agent_mode='llm' if os.getenv('LLM_API_KEY') and os.getenv('LLM_MODEL') else 'offline')
+def health(): return dict(status='ok',data_mode='demo',agent_mode='llm' if hiagent_configured() or (os.getenv('LLM_API_KEY') and os.getenv('LLM_MODEL')) else 'offline',agent_provider='hiagent' if hiagent_configured() else 'compatible' if os.getenv('LLM_API_KEY') and os.getenv('LLM_MODEL') else 'offline')
 
 @app.get('/api/buildings')
 @app.get('/api/announcements')

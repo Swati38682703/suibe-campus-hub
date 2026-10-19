@@ -5,6 +5,7 @@ import re
 from urllib.parse import urlencode
 from datetime import date, timedelta
 import httpx
+from .hiagent import configured as hiagent_configured, completion as hiagent_completion, HiAgentError
 from .database import items
 from .services import available_rooms, route, search
 from .school_rooms import SchoolRoomError,SOURCE_URL,NOTICE
@@ -201,7 +202,7 @@ def offline(message, timetable,shared=False):
     return dict(mode='offline',answer='\n\n'.join(answer),trace=trace,citations=citations,actions=actions)
 
 async def respond(message, history, timetable,shared=False):
-    if not os.getenv('LLM_API_KEY') or not os.getenv('LLM_MODEL'):
+    if not hiagent_configured() and (not os.getenv('LLM_API_KEY') or not os.getenv('LLM_MODEL')):
         if history and any(w in history[-1].get('content','') for w in ['请指定要查的时段','请提供开学首周','勾选后可重新发送']) and len(message)<100:
             previous=next((h['content'] for h in reversed(history) if h['role']=='user'),'')
             if previous and not any(w in message for w in ['取消','不用','换个问题']): message=previous+'；补充：'+message
@@ -221,10 +222,13 @@ async def respond(message, history, timetable,shared=False):
     async with httpx.AsyncClient(timeout=40) as client:
         for _ in range(5):
             base=os.getenv('LLM_BASE_URL','https://api.openai.com/v1').rstrip('/')
-            payload=dict(model=os.environ['LLM_MODEL'],messages=messages,tools=TOOLS,temperature=0.2,max_tokens=1600)
-            if '.aliyuncs.com/' in base and os.environ['LLM_MODEL'].startswith('qwen'):payload['enable_thinking']=False
+            payload=dict(model=os.getenv('LLM_MODEL',''),messages=messages,tools=TOOLS,temperature=0.2,max_tokens=1600)
+            if '.aliyuncs.com/' in base and os.getenv('LLM_MODEL','').startswith('qwen'):payload['enable_thinking']=False
             try:
-                r=await client.post(base+'/chat/completions',headers={'Authorization':'Bearer '+os.environ['LLM_API_KEY']},json=payload)
+                if hiagent_configured():
+                    r=await hiagent_completion(client,messages,TOOLS)
+                else:
+                    r=await client.post(base+'/chat/completions',headers={'Authorization':'Bearer '+os.environ['LLM_API_KEY']},json=payload)
                 r.raise_for_status()
             except httpx.HTTPStatusError as e:
                 response=e.response
@@ -235,6 +239,7 @@ async def respond(message, history, timetable,shared=False):
                 elif response.status_code==429:message='模型服务繁忙或达到调用限额，请稍后再试。'
                 else:message='模型服务暂不可用，请维护者检查模型权限、免费额度和接口配置。'
                 raise ModelServiceError(message) from None
+            except HiAgentError as exc:raise ModelServiceError(str(exc)) from None
             except httpx.RequestError:raise ModelServiceError('连接模型服务超时或失败，请稍后重试；仍可直接打开赛事、食堂和办事指南页面。') from None
             msg=r.json()['choices'][0]['message']
             if not msg.get('tool_calls'):
