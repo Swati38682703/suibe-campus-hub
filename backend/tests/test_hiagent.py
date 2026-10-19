@@ -73,3 +73,9 @@ def test_hiagent_repairs_format_once(monkeypatch):
     result=asyncio.run(run()).json()
     assert result['choices'][0]['message']['content']=='查询完成'
     assert len(seen)==2 and '格式校验失败' in seen[1]
+
+
+def test_hiagent_calendar_keeps_all_events_for_combined_questions():
+    answer=json.dumps({'tool_calls':[{'function':{'name':'get_calendar','arguments':{'date':'2026-10-20','topic':'周次 期末'}}}]})
+    result=parse_message(answer,agent.TOOLS)
+    assert json.loads(result['tool_calls'][0]['function']['arguments'])=={'date':'2026-10-20'}

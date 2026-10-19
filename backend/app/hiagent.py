@@ -37,6 +37,9 @@ def parse_message(answer, tools):
                 args = json.loads(args)
             if not isinstance(args, dict):
                 raise ValueError()
+            # Send the complete calendar so combined topics cannot hide exam or holiday facts.
+            if function['name'] == 'get_calendar':
+                args.pop('topic', None)
             normalized.append(dict(id='hia-'+str(i), type='function', function=dict(
                 name=function['name'], arguments=json.dumps(args, ensure_ascii=False))))
         content = message.get('content')
