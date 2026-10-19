@@ -19,12 +19,13 @@ def load_json(answer):
         return json.loads(answer)
     except json.JSONDecodeError:
         # Qwen occasionally omits a closing brace. Repair only missing container
-        # terminators; never alter strings, field names, values, or tool arguments.
+        # terminators (including a duplicated final suffix); never alter strings,
+        # field names, values, or tool arguments.
         stack = []
         output = []
         quoted = escaped = False
         pairs = {'{': '}', '[': ']'}
-        for char in answer:
+        for index, char in enumerate(answer):
             if quoted:
                 if escaped:
                     escaped = False
@@ -39,6 +40,11 @@ def load_json(answer):
             elif char in '}]':
                 opener = '{' if char == '}' else '['
                 if opener not in stack:
+                    # Some responses repeat the final closing suffix. Drop only
+                    # trailing container terminators after a complete root value.
+                    trailing=answer[index:].strip()
+                    if output and not stack and len(trailing)<=4 and all(c in '}] \r\n\t' for c in trailing):
+                        break
                     raise ValueError('Unmatched JSON terminator')
                 while stack[-1] != opener:
                     output.append(pairs[stack.pop()])
@@ -122,6 +128,7 @@ async def completion(client, messages, tools):
         except HiAgentError:
             if attempt:
                 raise
-            query += '\n上次输出格式校验失败。请重新处理上面的请求，只返回合法 JSON；arguments 必须是对象。不要添加代码块或说明文字。'
+            correction = dict(role='system', content='上次输出格式校验失败。请重新生成合法JSON对象，字段为content与tool_calls；arguments必须是对象。content正文使用中文引号，避免未转义的ASCII双引号。不要代码块，不要重放无效格式。')
+            query = json.dumps(dict(messages=messages+[correction], tools=tools), ensure_ascii=False)
     return httpx.Response(200, json={'choices': [{'message': message}]},
                           request=httpx.Request('POST', base+'/chat_query_v2'))

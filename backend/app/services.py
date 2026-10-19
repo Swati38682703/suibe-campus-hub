@@ -69,7 +69,7 @@ def search(q: str):
     if os.getenv('SCHOOL_ROOMS_MODE','school')=='demo':kinds.append('rooms')
     rows=[dict(kind=kind,**row) for kind in kinds for row in items(kind) if q.casefold() in ' '.join(str(v) for v in row.values()).casefold()]
     room_match=re.search(r'(?:S[ABCD]{2}|S?[ABCD]|XXL)\d{1,4}',q,re.I)
-    if os.getenv('SCHOOL_ROOMS_MODE','school')!='demo' and (room_match or '教室' in q):
+    if os.getenv('SCHOOL_ROOMS_MODE','school')!='demo' and (room_match or q.strip() in ['教室','空教室','教室查询']):
         from .school_rooms import SchoolRoomError
         from .site_knowledge import shanghai_day
         room_query=re.sub(r'^S([ABCD])\1',r'S\1',room_match[0].upper()) if room_match else ''

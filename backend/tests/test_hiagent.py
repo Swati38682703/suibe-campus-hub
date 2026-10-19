@@ -73,6 +73,10 @@ def test_hiagent_repairs_format_once(monkeypatch):
     result=asyncio.run(run()).json()
     assert result['choices'][0]['message']['content']=='查询完成'
     assert len(seen)==2 and '格式校验失败' in seen[1]
+    repaired=json.loads(seen[1])
+    assert repaired['messages'][0]=={'role':'user','content':'测试'}
+    assert repaired['messages'][-1]['role']=='system'
+    assert repaired['tools']==agent.TOOLS
 
 
 def test_hiagent_calendar_keeps_all_events_for_combined_questions():
@@ -88,3 +92,11 @@ def test_hiagent_missing_container_terminator_keeps_tool_values():
     assert json.loads(result['tool_calls'][0]['function']['arguments'])=={'date':'2026-10-20'}
     with pytest.raises(HiAgentError):
         parse_message('{"content":"unfinished',agent.TOOLS)
+
+
+def test_school_duplicate_closing_suffix_preserves_task_parameters():
+    malformed='{"content":null,"tool_calls":[{"id":"call_1","type":"function","function":{"name":"find_free_periods","arguments":{"date":"2035-10-20","periods":[6,7,8,9,10],"consecutive":2}}]}]}'
+    result=parse_message(malformed,agent.TOOLS)
+    assert json.loads(result['tool_calls'][0]['function']['arguments'])=={'date':'2035-10-20','periods':[6,7,8,9,10],'consecutive':2}
+    for bad in ['{"content":"ok","tool_calls":[]} {"content":"second"}', '{"content":"unescaped "quote"","tool_calls":[]}', '] {"content":"ok","tool_calls":[]}']:
+        with pytest.raises(HiAgentError):parse_message(bad,agent.TOOLS)
