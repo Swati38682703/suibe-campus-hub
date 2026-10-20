@@ -316,3 +316,6 @@ def announcement(payload: AnnouncementInput,x_admin_token: str=Header(default=''
 
 from .dining import router as dining_router
 app.include_router(dining_router)
+
+from .sharing import build_router as sharing_router
+app.include_router(sharing_router(limited))

@@ -23,7 +23,7 @@ TOOLS = [
     dict(type='function',function=dict(name='find_free_periods',description='按主动分享的课表计算目标日期连续空档；返回 windows 后须逐一 find_rooms，不能把未分享课表当作无课',parameters=dict(type='object',properties={'date':{'type':'string'},'periods':{'type':'array','items':{'type':'integer'}},'consecutive':{'type':'integer'}},required=['date','periods','consecutive']))),
     dict(type='function',function=dict(name='draft_calendar',description='计算自定义校历草稿与预览链接，不会自动保存或覆盖学校校历',parameters=dict(type='object',properties={'start':{'type':'string'},'weeks':{'type':'integer'},'term':{'type':'integer'}},required=['start','weeks']))),
     dict(type='function',function=dict(name='find_rooms',description='查询学校指定日期第1–14节课表占用，返回最近抓取时间。未占用不等于现场无人或开放；失败不得推荐教室',parameters=dict(type='object',properties={'date':{'type':'string'},'periods':{'type':'array','items':{'type':'integer'}},'min_capacity':{'type':'integer'}},required=['date','periods']))),
-    dict(type='function',function=dict(name='plan_route',description='在示意校园路径网络上计算步行路线',parameters=dict(type='object',properties={'start':{'type':'string'},'end':{'type':'string'}},required=['start','end']))),
+    dict(type='function',function=dict(name='plan_route',description='在校园原图的示意路径网络上规划路线。只有providerMinutes来自已保存百度记录时才给时间参考；没有则明确暂无百度参考用时，不能按步速自行估算',parameters=dict(type='object',properties={'start':{'type':'string'},'end':{'type':'string'}},required=['start','end']))),
     dict(type='function',function=dict(name='search_campus',description='检索教师、课程、校园知识、建筑、公告',parameters=dict(type='object',properties={'query':{'type':'string'}},required=['query']))),
     dict(type='function',function=dict(name='read_timetable',description='读取用户自愿传入的本地课表上下文',parameters=dict(type='object',properties={}))),
 ]
@@ -179,7 +179,7 @@ def offline(message, timetable,shared=False):
         end=room['building'] if room else mentions[-1][1] if len(mentions)>1 else 'A'
         result=call('plan_route',dict(start=start,end=end))
         names={b['id']:b['name'] for b in buildings}
-        answer.append(f"{names[start]} → {names[end]}，{result.get('distanceLabel','示意距离')} {result['distanceM']} 米，约 {result['minutes']} 分钟。实际道路和开放入口需现场核验。")
+        answer.append(f"{names[start]} → {names[end]}，{result.get('distanceLabel','示意距离')} {result['distanceM']} 米，{("百度参考约 "+str(result["providerMinutes"])+" 分钟") if result.get("providerMinutes") is not None else "暂无百度参考用时"}。实际道路和开放入口需现场核验。")
         actions.append(dict(label='打开路线',href=f'/map?from={start}&to={end}&building={end}'))
         citations.append(dict(title='百度步行记录' if result.get('sourceUrl') else '路径网络',source=result['source'],**({'url':result['sourceUrl']} if result.get('sourceUrl') else {})))
     if not personal and any(w in message for w in ['课表','今天有什么课','冲突']):
@@ -224,7 +224,7 @@ def finish_room_route(trace,message):
     lines=[f"{args['date']} 第{'、'.join(map(str,args['periods']))}节，候选教室：{room['name']}，容量{room['capacity']}人，学校课表显示未占用。"]
     free=next((t['result'] for t in reversed(trace) if t['tool']=='find_free_periods' and t['result'].get('ready') and t['result'].get('date')==args['date'] and args['periods'] in t['result'].get('windows',[])),None)
     if free:lines.append('该时段已按本次主动分享的课表核对；未录入课程不在核对范围内。')
-    lines.append(f"{buildings[start]} → {buildings[room['building']]}：{r.get('distanceLabel','示意距离')} {r['distanceM']}米，约{r['minutes']}分钟。路线依据：{r['source']}。")
+    lines.append(f"{buildings[start]} → {buildings[room['building']]}：{r.get('distanceLabel','示意距离')} {r['distanceM']}米，{("百度参考约"+str(r["providerMinutes"])+"分钟") if r.get("providerMinutes") is not None else "暂无百度参考用时"}。路线依据：{r['source']}。")
     lines.append(f"教室来源：{result.get('source','学校教室占用每日总览')}；读取时间：{result.get('updated_at','未提供')}。{NOTICE}")
     return '\n\n'.join(lines)
 

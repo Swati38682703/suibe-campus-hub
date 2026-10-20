@@ -19,13 +19,13 @@ def test_room_all_periods_and_filters(client):
     assert client.get('/api/rooms/available?periods=15').status_code==422
     assert client.get('/api/rooms/available?date=invalid').status_code==422
 
-def test_route_distance_symmetry_and_speed(client):
+def test_schematic_routes_do_not_invent_walking_time(client):
     a=client.post('/api/map/route',json={'start':'LIB','end':'A','speed':80}).json()
     b=client.post('/api/map/route',json={'start':'A','end':'LIB','speed':80}).json()
     slow=client.post('/api/map/route',json={'start':'LIB','end':'A','speed':60}).json()
     assert a['distanceM']==b['distanceM']>0
-    assert a['minutes']==round(a['distanceM']/80,1)
-    assert slow['minutes']>a['minutes']
+    assert a['minutes'] is None
+    assert slow['minutes'] is None
     assert client.post('/api/map/route',json={'start':'A','end':'A'}).json()['distanceM']==0
     assert client.post('/api/map/route',json={'start':'FAKE','end':'A'}).status_code==422
 
@@ -156,14 +156,14 @@ def test_map_migration_preserves_unrelated_data_and_snapshot(client):
         backup=s.get(Record,('map_backup','before-baidu-reference-v7'))
         assert backup and backup.data['buildings']
 
-def test_saved_baidu_routes_keep_observed_distance_and_speed(client):
+def test_saved_baidu_routes_keep_observed_distance_and_provider_time(client):
     records=client.get('/api/map/verified-routes').json()
     assert {r['end']:r['distanceM'] for r in records}=={'XUESI':270,'INFO':160,'GYM':660,'LQ':520}
     for row in records:
         result=client.post('/api/map/route',json={'start':row['start'],'end':row['end'],'speed':60}).json()
         assert result['distanceProvider']=='baidu_saved'
         assert result['distanceM']==row['distanceM']
-        assert result['minutes']==round(row['distanceM']/60,1)
+        assert result['minutes']==row['providerMinutes']
         assert result['providerMinutes']==row['providerMinutes']
         assert result['sourceUrl'].startswith('https://j.map.baidu.com/')
         assert result['checkedAt']=='2026-10-15'

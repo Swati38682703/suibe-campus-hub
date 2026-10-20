@@ -54,10 +54,10 @@ def route(start: str, end: str, speed: int=80, accessible: bool=False):
         visited.add(node)
         if node==b:
             total=round(cost+distance(start_point,nodes[a])+distance(end_point,nodes[b]))
-            result=dict(path=[start_point]+[nodes[n] for n in path]+[end_point],distanceM=total,minutes=round(total/speed,1),distanceProvider='schematic',distanceLabel='示意距离 · 未核验',source='根据用户分布图重建的示意路径；入口、比例尺与通行条件未经实测')
+            result=dict(path=[start_point]+[nodes[n] for n in path]+[end_point],distanceM=total,minutes=None,distanceProvider='schematic',distanceLabel='示意距离 · 未核验',source='根据用户分布图重建的示意路径；入口、比例尺与通行条件未经实测')
             verified=next((r for r in WALKING_ROUTES if r['start']==start and r['end']==end),None)
             if verified:
-                result.update(distanceM=verified['distanceM'],minutes=round(verified['distanceM']/speed,1),distanceProvider='baidu_saved',distanceLabel='百度步行约',providerMinutes=verified['providerMinutes'],sourceUrl=verified['sourceUrl'],checkedAt=verified['checkedAt'],source='百度地图网页步行查询的离线记录；场景中的路线仍为示意，非实时导航')
+                result.update(distanceM=verified['distanceM'],minutes=verified['providerMinutes'],distanceProvider='baidu_saved',distanceLabel='百度步行约',providerMinutes=verified['providerMinutes'],sourceUrl=verified['sourceUrl'],checkedAt=verified['checkedAt'],source='百度地图网页步行查询的离线记录；场景中的路线仍为示意，非实时导航')
             return result
         for neighbor,length in graph[node]:
             heapq.heappush(queue,(cost+length,neighbor,path+[neighbor]))

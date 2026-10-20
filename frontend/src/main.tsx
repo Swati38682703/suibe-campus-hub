@@ -15,9 +15,10 @@ import './blue-theme.css';
 import './mobile.css';
 import './journal.css';
 import './campus-icons.css';
+import './campus-updates.css';
 const MapPage=React.lazy(()=>import('./map'));
 
-const navigation=[{href:'/',label:'校园概览',icon:LayoutDashboard},{href:'/assistant',label:'AI 校园助手',icon:Bot},{href:'/rooms',label:'空闲教室',icon:BookOpen},{href:'/teachers',label:'教师检索',icon:Users},{href:'/map',label:'3D 校园地图',icon:Compass},{href:'/courses',label:'课程点评',icon:GraduationCap},{href:'/competitions',label:'赛事广场',icon:Trophy},{href:'/dining',label:'校园食光',icon:Compass},{href:'/life-guide',label:'生活指南',icon:Compass},{href:'/timetable',label:'我的课表',icon:CalendarDays},{href:'/calendar',label:'校历与周次',icon:CalendarDays}];
+const navigation=[{href:'/',label:'校园概览',icon:LayoutDashboard},{href:'/assistant',label:'AI 校园助手',icon:Bot},{href:'/rooms',label:'空闲教室',icon:BookOpen},{href:'/teachers',label:'教师检索',icon:Users},{href:'/map',label:'校园平面地图',icon:Compass},{href:'/courses',label:'课程点评',icon:GraduationCap},{href:'/competitions',label:'赛事广场',icon:Trophy},{href:'/dining',label:'校园食光',icon:Compass},{href:'/life-guide',label:'生活指南',icon:Compass},{href:'/timetable',label:'我的课表',icon:CalendarDays},{href:'/calendar',label:'校历与周次',icon:CalendarDays}];
 function Shell(){
  const [notice,setNotice]=useState(''),[mobile,setMobile]=useState(false),[query,setQuery]=useState('');
  const location=useLocation(),navigate=useNavigate();
