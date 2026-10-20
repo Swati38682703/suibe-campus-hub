@@ -12,6 +12,6 @@ export function recommendFoods(dishes:FoodChoice[],records:TasteRecord[],stamped
  return dishes.filter(d=>!d.demo&&(mode==='new'?!eaten.has(d.id):eaten.has(d.id)&&(ratings.get(d.id)?.score??0)>=4)).map(d=>{
   const tags=knownTasteTags(d,records),affinity=tags.reduce((n,t)=>n+(weights.get(t)||0),0),rating=ratings.get(d.id),newWindow=!!windowKey(d)&&!visitedWindows.has(windowKey(d));
   const reason=mode==='again'?'你给过 '+rating!.score+' 星'+(tags.length?' · '+tags.join('、'):''):newWindow?'还没尝试过这个窗口':tags.some(t=>(weights.get(t)||0)>0)?'符合你的口味偏好':'尚未记录吃过，可以尝尝看';
-  return {dish:d,tags,reason,score:mode==='again'?rating!.score*10+affinity:affinity*3+(newWindow?2:0)+(d.average??0)};
- }).sort((a,b)=>b.score-a.score||a.dish.id.localeCompare(b.dish.id)).slice(0,6);
+  return {dish:d,tags,reason,matches:tags.filter(t=>preferred.includes(t)).length,score:mode==='again'?rating!.score*10+affinity:affinity*3+(newWindow?2:0)+(d.average??0)};
+ }).sort((a,b)=>b.matches-a.matches||b.score-a.score||a.dish.id.localeCompare(b.dish.id)).slice(0,6);
 }

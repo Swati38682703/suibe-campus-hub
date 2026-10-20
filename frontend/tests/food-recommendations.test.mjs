@@ -19,3 +19,9 @@ test('unknown windows never masquerade as verified untried windows',()=>{
  const rows=recommendFoods([dish('x',{window:'窗口待核实'})],[],[],'new');
  assert.doesNotMatch(rows[0].reason,/窗口/);
 });
+test('today flavour takes priority over previous rating in both modes',()=>{
+ const dishes=[dish('mild',{tag:'清淡'}),dish('spicy',{tag:'香辣'})];
+ assert.equal(recommendFoods(dishes,[],[],'new',['辛辣'])[0].dish.id,'spicy');
+ const records=[record('mild',5,['清淡']),record('spicy',4,['辛辣'])];
+ assert.equal(recommendFoods(dishes,records,[],'again',['辛辣'])[0].dish.id,'spicy');
+});
