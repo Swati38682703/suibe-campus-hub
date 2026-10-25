@@ -95,3 +95,28 @@ def test_revoke_during_ai_request_does_not_release_answer(client,monkeypatch):
         return httpx.Response(200,json={'choices':[{'message':{'content':'不应返回的旧授权回答'}}]})
     monkeypatch.setattr(hiagent,'completion',fake_completion)
     assert client.post('/api/sharing/plan/explain',json=payload(b)).status_code==403
+
+def test_passwordless_browser_identity_does_not_take_over_other_browser(client):
+    student=str(secrets.randbelow(10**11)+10**11);client.cookies.clear()
+    r=client.post('/api/account/guest',json=dict(student_id=student,name='免登录同学'));assert r.status_code==200
+    assert 'password' not in r.text and 'httponly' in r.headers['set-cookie'].lower()
+    identity=r.json();cookie=client.cookies.get(COOKIE);assert client.get('/api/account/me').json()['id']==identity['id']
+    client.cookies.clear();assert client.post('/api/account/guest',json=dict(student_id=student,name='别的浏览器')).status_code==409
+    client.cookies.set(COOKIE,cookie);assert client.post('/api/account/guest',json=dict(student_id=student,name='原浏览器')).status_code==200
+
+
+def test_passwordless_identity_keeps_consent_required(client):
+    people=[]
+    for name in ['免登录甲','免登录乙']:
+        client.cookies.clear();r=client.post('/api/account/guest',json=dict(student_id=str(secrets.randbelow(10**11)+10**11),name=name));assert r.status_code==200
+        people.append(dict(**r.json(),cookie=client.cookies.get(COOKIE)))
+    a,b=people;sync(client,b,[course()]);use(client,a)
+    assert client.get('/api/sharing/timetables/'+b['id']).status_code==403
+    grant=client.post('/api/sharing/requests',json={'student_id':b['student_id']}).json()['id'];use(client,b);assert client.put('/api/sharing/requests/'+grant,json={'accept':True}).status_code==200
+    use(client,a);assert client.get('/api/sharing/timetables/'+b['id']).status_code==200
+
+
+def test_merged_week_only_includes_authorized_current_week_courses(client,monkeypatch):
+    a,b,_=approved_pair(client);sync(client,a,[course('this-week'),{**course('next-week'),'weeks':'7','day':3}]);use(client,a);monkeypatch.setattr(sharing,'available_rooms',lambda *a,**k:[])
+    r=client.post('/api/sharing/plan',json=payload(b));assert r.status_code==200
+    rows=r.json()['merged_timetable'];assert {x['owner_id'] for x in rows}=={a['id'],b['id']};assert 'next-week' not in [x['id'] for x in rows]

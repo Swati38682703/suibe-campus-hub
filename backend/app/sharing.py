@@ -51,9 +51,9 @@ def account_info(a):return dict(id=a.id,student_id=a.student_id,name=a.name,time
 def current_account(request,session):
     token=request.cookies.get(COOKIE,'')
     login=session.get(SiteSession,token_hash(token)) if token else None
-    if not login or login.expires_at<int(time.time()):raise HTTPException(401,'请先登录本站账号')
+    if not login or login.expires_at<int(time.time()):raise HTTPException(401,'请先填写本机共享身份')
     a=session.get(SiteAccount,login.account_id)
-    if not a:raise HTTPException(401,'登录已失效，请重新登录')
+    if not a:raise HTTPException(401,'本机身份已失效，请重新登记')
     return a
 
 def week_numbers(value):
@@ -104,6 +104,14 @@ class ShareRequest(BaseModel):
     student_id:str=Field(pattern=r'^\d{5,20}$')
 class ShareDecision(BaseModel):
     accept:bool
+class BrowserIdentity(BaseModel):
+    student_id:str=Field(pattern=r'^\d{5,20}$')
+    name:str=Field(min_length=1,max_length=24)
+    @field_validator('name')
+    @classmethod
+    def named(cls,v):
+        if not v.strip():raise ValueError('请填写称呼')
+        return v.strip()
 class GroupPlanInput(BaseModel):
     members:list[str]=Field(min_length=1,max_length=8)
     date:str=Field(max_length=10)
@@ -143,7 +151,7 @@ def build_group_plan(session,me,payload):
     if len(people)<2:raise HTTPException(422,'请选择至少一位已经授权的同学')
     timetable=[r for p in people for r in p.timetable]
     free=find_free_periods(payload.date,payload.periods,payload.consecutive,timetable,True)
-    result=dict(**free,participants=[dict(id=p.id,name=p.name) for p in people],suggestions=[],note='只核对参与者已同步的课程，未录入事项不在范围内。教室未排课不代表开放或现场无人。')
+    result=dict(**free,participants=[dict(id=p.id,name=p.name) for p in people],merged_timetable=[dict(**row,owner_id=person.id,owner_name=person.name) for person in people for row in person.timetable if free.get('ready') and row['semester']==free.get('semester') and free.get('week') in week_numbers(row['weeks'])],suggestions=[],note='只核对参与者已同步的课程，未录入事项不在范围内。教室未排课不代表开放或现场无人。')
     if not free.get('ready') or not free['windows']:return result
     buildings={b['id']:b for b in items('buildings')};target=date.fromisoformat(payload.date);route_cache={}
     for window in free['windows'][:6]:
@@ -177,10 +185,26 @@ def authorized_plan(request,payload):
 
 def build_router(limited):
     router=APIRouter()
-    def login_cookie(request,response,session,account):
+    def login_cookie(request,response,session,account,ttl=604800):
         session.query(SiteSession).filter(SiteSession.expires_at<int(time.time())).delete()
-        token=secrets.token_urlsafe(32);session.add(SiteSession(token_hash=token_hash(token),account_id=account.id,expires_at=int(time.time())+604800))
-        response.set_cookie(COOKIE,token,max_age=604800,httponly=True,samesite='lax',secure=request.url.scheme=='https' or request.headers.get('x-forwarded-proto')=='https',path='/')
+        token=secrets.token_urlsafe(32);session.add(SiteSession(token_hash=token_hash(token),account_id=account.id,expires_at=int(time.time())+ttl))
+        response.set_cookie(COOKIE,token,max_age=ttl,httponly=True,samesite='lax',secure=request.url.scheme=='https' or request.headers.get('x-forwarded-proto')=='https',path='/')
+    @router.post('/api/account/guest')
+    def browser_identity(payload:BrowserIdentity,request:Request,response:Response):
+        limited(request,'browser-identity',6)
+        try:
+            with Session.begin() as session:
+                account=session.query(SiteAccount).filter_by(student_id=payload.student_id).first()
+                if account:
+                    try:owner=current_account(request,session)
+                    except HTTPException:raise HTTPException(409,'该学号已在另一个浏览器登记，请使用原浏览器；不能直接接管已有课表')
+                    if owner.id!=account.id:raise HTTPException(409,'该学号已被其他浏览器登记')
+                    account.name=payload.name
+                else:
+                    salt=secrets.token_hex(16)
+                    account=SiteAccount(id=secrets.token_hex(16),student_id=payload.student_id,name=payload.name,salt=salt,password_hash=password_hash(secrets.token_urlsafe(32),salt),timetable=[],timetable_updated_at='');session.add(account);session.flush()
+                login_cookie(request,response,session,account,31536000);return account_info(account)
+        except IntegrityError:raise HTTPException(409,'该学号刚被其他浏览器登记，请核对学号')
     @router.post('/api/account/register',status_code=201)
     def register(payload:Registration,request:Request,response:Response):
         limited(request,'account-register',5);salt=secrets.token_hex(16)
@@ -264,7 +288,7 @@ def build_router(limited):
         prompt='只根据已核对的多人共同空档和教室结果，用简洁中文解释可讨论时段、候选教室与课程位置的关系；只能从结果选择，不能增加时间、教室或距离。无可用结果时如实说明。不要索取密码。返回合法JSON：content为中文正文，tool_calls为空数组。'
         try:
             async with httpx.AsyncClient(timeout=90) as client:
-                answer=await completion(client,[dict(role='system',content=prompt),dict(role='user',content=__import__('json').dumps(verified,ensure_ascii=False))],[])
+                answer=await completion(client,[dict(role='system',content=prompt),dict(role='user',content=__import__('json').dumps({k:v for k,v in verified.items() if k!='merged_timetable'},ensure_ascii=False))],[])
                 content=answer.json()['choices'][0]['message']['content']
         except (httpx.HTTPError,HiAgentError,ValueError,KeyError,TypeError) as exc:raise HTTPException(503,'学校HiAgent暂不可用，已核对的程序查询结果仍可查看') from exc
         # The request may take time: recheck consent before exposing the generated answer.
