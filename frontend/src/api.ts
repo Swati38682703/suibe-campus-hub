@@ -1,7 +1,12 @@
 export async function api<T = any>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch('/api' + path, {...options, headers: {'Content-Type': 'application/json', ...options.headers}});
-  const body = await response.json();
-  if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : '输入有误，请检查填写内容');
+  const response = await fetch('/api' + path, {...options, headers: {'Content-Type': 'application/json', ...options.headers}}).catch(() => { throw new Error('无法连接校园服务，请检查网络后重试。'); });
+  const text = await response.text();
+  let body: any = null;
+  try { body = text ? JSON.parse(text) : null; } catch {
+    throw new Error(response.ok ? '校园服务返回了无法识别的内容，请稍后重试。' : '校园服务暂时无法连接，请稍后重试。');
+  }
+  if (!response.ok) throw new Error(typeof body?.detail === 'string' ? body.detail : response.status>=500 ? '校园服务暂时无法连接，请稍后重试。' : '输入有误，请检查填写内容');
+  if (!text && response.status!==204) throw new Error('校园服务返回了空内容，请稍后重试。');
   return body;
 }
 export const post = <T = any>(path: string, body: unknown, headers = {}) => api<T>(path, {method: 'POST', body: JSON.stringify(body), headers});

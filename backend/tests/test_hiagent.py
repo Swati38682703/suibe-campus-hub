@@ -100,3 +100,16 @@ def test_school_duplicate_closing_suffix_preserves_task_parameters():
     assert json.loads(result['tool_calls'][0]['function']['arguments'])=={'date':'2035-10-20','periods':[6,7,8,9,10],'consecutive':2}
     for bad in ['{"content":"ok","tool_calls":[]} {"content":"second"}', '{"content":"unescaped "quote"","tool_calls":[]}', '] {"content":"ok","tool_calls":[]}']:
         with pytest.raises(HiAgentError):parse_message(bad,agent.TOOLS)
+
+
+def test_explicit_web_search_requires_platform_execution(monkeypatch):
+    monkeypatch.setenv('HIAGENT_API_KEY', 'school-test-only')
+    async def completion(client, messages, tools):
+        prompt=messages[0]['content']
+        assert '必须实际调用平台绑定的BingSearch原生搜索' in prompt
+        assert '不能仅以网站search_campus的空结果结束' in prompt
+        assert '禁止把个人课表' in prompt
+        return httpx.Response(200,json={'choices':[{'message':{'content':'检索服务暂不可用。','tool_calls':[]}}]},request=httpx.Request('POST','https://example.test'))
+    monkeypatch.setattr(agent,'hiagent_completion',completion)
+    result=asyncio.run(agent.respond('请联网搜索学校官网',[],[],False))
+    assert result['answer']=='检索服务暂不可用。'

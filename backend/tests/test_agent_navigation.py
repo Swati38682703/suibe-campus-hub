@@ -42,3 +42,55 @@ def test_combined_route_is_executed_and_rendered_from_tool_facts(monkeypatch,cli
     assert agent.finish_room_route(trace,'只算个人空档') is None
     agent.finish_room_route(trace,'从图书馆给路线')
     assert len(calls)==1
+
+
+def test_direct_room_answer_reports_exact_scope_without_examples_or_guessed_times():
+    from backend.app.agent import format_room_results
+    trace=[dict(tool='find_rooms',arguments=json.dumps(dict(date='2026-11-02',periods=[3,4])),result=dict(status='ok',total_count=12,rooms=[dict(name='SA507',type='多媒体教室',capacity=60)],updated_at='2026-11-01 21:07',source_url='https://example.test/very-long-query'))]
+    answer=format_room_results(trace)
+    assert '查到12间' in answer and '先列出1间' in answer
+    assert 'SA507（多媒体教室 · 60人）' in answer
+    assert '2026-11-02 第3、4节' in answer and '2026-11-01 21:07' in answer
+    assert all(word not in answer for word in ['例如','10:00','12:00','https://'])
+    assert '不代表教室已开放或现场无人' in answer
+    trace[0]['result']=dict(status='unavailable',rooms=[])
+    assert '无法确认' in format_room_results(trace)
+    trace[0]['result']=dict(status='ok',rooms=[],total_count=0)
+    assert '未查到符合本次条件' in format_room_results(trace)
+    trace.append(dict(tool='search_services',result={}))
+    assert format_room_results(trace) is None
+
+
+def test_model_room_answer_is_replaced_with_verified_results(monkeypatch,client):
+    import asyncio
+    import httpx
+    from backend.app import agent
+    monkeypatch.setenv('HIAGENT_API_KEY','school-test-only')
+    async def completion(client,messages,tools):
+        msg={'content':'例如某间教室，约10:00到12:00。','tool_calls':[]}
+        if not any(m['role']=='tool' for m in messages):
+            msg={'content':None,'tool_calls':[{'id':'room-test','type':'function','function':{'name':'find_rooms','arguments':json.dumps({'date':'2026-11-02','periods':[3,4]})}}]}
+        msg['role']='assistant'
+        return httpx.Response(200,json={'choices':[{'message':msg}]},request=httpx.Request('POST','https://example.test'))
+    monkeypatch.setattr(agent,'hiagent_completion',completion)
+    monkeypatch.setattr(agent,'execute',lambda *a:dict(status='ok',rooms=[dict(id='SA507',name='SA507',capacity=60)],total_count=1,source='学校排课',source_url='https://example.test/rooms'))
+    result=asyncio.run(agent.respond('明天第3-4节有空教室吗',[],[],False))
+    assert 'SA507' in result['answer'] and '例如' not in result['answer']
+    assert result['citations'][0]['url']=='https://example.test/rooms'
+    assert any(a['label']=='查看本时段教室' for a in result['actions'])
+
+
+def test_calendar_lookup_does_not_disable_direct_classroom_formatting():
+    from backend.app.agent import format_room_results
+    trace=[dict(tool='get_calendar',result={'found':True}),dict(tool='find_rooms',arguments={'date':'2026-11-02','periods':[3,4]},result={'status':'ok','rooms':[{'name':'SA507'}],'total_count':1})]
+    assert 'SA507' in format_room_results(trace,'明天第3-4节找教室')
+    assert format_room_results(trace,'明天第几周，找教室') is None
+
+
+def test_multiple_free_windows_are_all_checked_before_direct_room_reply():
+    from backend.app.agent import format_room_results
+    trace=[dict(tool='find_free_periods',result=dict(ready=True,date='2026-11-02',windows=[[3,4],[5,6]])),dict(tool='find_rooms',arguments=dict(date='2026-11-02',periods=[3,4]),result=dict(status='ok',rooms=[dict(name='SA507')]))]
+    assert format_room_results(trace) is None
+    trace.append(dict(tool='find_rooms',arguments=dict(date='2026-11-02',periods=[5,6]),result=dict(status='ok',rooms=[])))
+    answer=format_room_results(trace)
+    assert 'SA507' in answer and '第5、6节' in answer

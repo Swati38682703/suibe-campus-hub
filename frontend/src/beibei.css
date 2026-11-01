@@ -1,0 +1,90 @@
+.beibei-widget{position:fixed;right:24px;bottom:22px;z-index:45}
+.beibei-launcher{position:relative;display:flex;flex-direction:column;align-items:center;width:96px;padding:0;background:transparent;color:#223a70;touch-action:manipulation}
+.beibei-character{position:relative;display:block;width:96px;height:102px;transform-origin:50% 85%;animation:beibei-float 4.5s ease-in-out infinite}
+.beibei-character img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 7px 8px #254e7d26);user-select:none}
+.beibei-greeting{position:absolute;right:96px;top:24px;background:#fff;border:1px solid #d7e7fa;border-radius:16px 16px 3px 16px;padding:8px 13px;font-size:12px;white-space:nowrap;box-shadow:0 4px 20px #254e7d10;pointer-events:none}
+.beibei-name{margin-top:-2px;border:1px solid #d4e5fa;background:#fffffff2;box-shadow:0 3px 10px #254e7d12;border-radius:20px;padding:3px 14px;font-size:11px;font-weight:600}
+.beibei-sparkle{position:absolute;left:44%;top:64%;font-size:14px;color:#c4ffff;text-shadow:0 0 8px #56d6ff;animation:beibei-glow 3s ease-in-out infinite;pointer-events:none}
+.beibei-launcher:hover .beibei-character{animation:beibei-wave .8s ease-in-out infinite}
+.beibei-launcher:active .beibei-character{transform:scale(.94)}
+.beibei-widget[data-activity=idle] .beibei-launcher.is-open .beibei-greeting{display:none}
+.beibei-dialog{position:fixed;right:24px;bottom:24px;width:min(480px,calc(100% - 32px));height:min(720px,calc(100dvh - 48px));display:flex;flex-direction:column;overflow:hidden;border:1px solid #cbdff5;border-radius:22px;background:#fff;box-shadow:0 18px 70px #17365c30}
+.beibei-dialog[hidden]{display:none}
+.beibei-header{display:flex;align-items:center;gap:9px;padding:13px 15px;background:linear-gradient(120deg,#edf6ff,#fafcff);border-bottom:1px solid #e0ebf8;flex-shrink:0}
+.beibei-header>img{width:43px;height:46px;object-fit:contain}.beibei-header>div{flex:1;min-width:0}.beibei-header h2{font-size:14px;margin:0}.beibei-header p{font-size:10px;margin:2px 0 0}.beibei-header>a,.beibei-header>button{display:grid;place-items:center;width:30px;height:32px;border-radius:8px;background:transparent;color:#43618b}.beibei-header>a:hover,.beibei-header>button:hover{background:#dfeeff}
+.beibei-chat{flex:1;min-height:0;overflow:hidden}.beibei-chat>.page-title,.beibei-chat .assistant-info,.beibei-chat .chat-top,.beibei-chat .assistant-orb{display:none}
+.beibei-chat .assistant-layout{display:block;height:100%;margin:0}.beibei-chat .chat-panel{display:flex;flex-direction:column;gap:0;height:100%;min-height:0;padding:14px;margin:0;border:0;border-radius:0;background:#fff}
+.beibei-chat .chat-messages{flex:1;min-height:0;max-height:none;overflow-y:auto;padding:4px 3px 14px;overscroll-behavior:contain;scrollbar-width:thin}
+.beibei-chat .chat-welcome{padding:10px 0}.beibei-chat .chat-welcome h2{font-size:18px}.beibei-chat .chat-welcome>p{font-size:12px}.beibei-chat .assistant-prompts{display:grid;grid-template-columns:1fr;gap:8px}.beibei-chat .prompt-card{min-height:58px;padding:10px}.beibei-chat .prompt-card:nth-child(n+4){display:none}.beibei-chat .prompt-copy strong{font-size:12px}.beibei-chat .prompt-copy small{font-size:10px}
+.beibei-chat .chat-input{flex-shrink:0;margin:8px 0 0}.beibei-chat .chat-input textarea{min-height:60px;height:60px;max-height:100px;font-size:14px}.beibei-chat .chat-privacy{flex-shrink:0;display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;font-size:10px}.beibei-chat .chat-privacy label{font-size:10px;white-space:normal}.beibei-chat .chat-privacy>span{display:none}.beibei-chat .chat-message{gap:8px}.beibei-chat .message-body{min-width:0;overflow-wrap:anywhere}.beibei-chat .message-body p{font-size:13px}.beibei-chat pre{max-width:100%;overflow:auto}.beibei-chat .error{font-size:12px;max-height:70px;overflow:auto}
+@keyframes beibei-float{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-7px) rotate(1deg)}}
+@keyframes beibei-wave{0%,100%{transform:rotate(-6deg) translateY(-3px)}50%{transform:rotate(6deg) translateY(-10px) scale(1.04)}}
+@keyframes beibei-glow{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+@media(max-width:600px){.beibei-widget{right:12px;bottom:calc(76px + env(safe-area-inset-bottom))}.beibei-launcher{width:94px}.beibei-character{width:94px;height:100px}.beibei-greeting{display:none}.beibei-name{font-size:10px;padding:2px 10px}.beibei-dialog{right:12px;bottom:calc(76px + env(safe-area-inset-bottom));width:calc(100% - 24px);height:calc(100dvh - 100px - env(safe-area-inset-bottom));border-radius:18px}.beibei-chat .chat-input textarea{font-size:16px}}
+@media(max-height:600px) and (min-width:601px){.beibei-dialog{bottom:16px;height:calc(100dvh - 32px)}}
+@media(prefers-reduced-motion:reduce){.beibei-character,.beibei-launcher:hover .beibei-character,.beibei-sparkle{animation:none}}
+@media print{.beibei-widget{display:none}}
+/* Each campus outfit has a restrained motion; the dialogue stays mounted across routes. */
+.beibei-entrance{display:block;position:relative;animation:beibei-arrive .85s cubic-bezier(.2,.7,.3,1) both}
+.beibei-widget .beibei-greeting,.beibei-widget .beibei-name{border-color:var(--beibei-accent)}
+.beibei-widget[data-motion=plan] .beibei-character{animation:beibei-plan 5s ease-in-out infinite}
+.beibei-widget[data-motion=read] .beibei-character{animation:beibei-read 5s ease-in-out infinite}
+.beibei-widget[data-motion=explore] .beibei-character{animation:beibei-explore 5s ease-in-out infinite}
+.beibei-widget[data-motion=taste] .beibei-character{animation:beibei-taste 4s ease-in-out infinite}
+.beibei-widget[data-motion=cheer] .beibei-character{animation:beibei-cheer 4.8s ease-in-out infinite}
+.beibei-widget[data-motion=announce] .beibei-character{animation:beibei-announce 5s ease-in-out infinite}
+.beibei-widget .beibei-sparkle{left:auto;right:13%;top:26%;color:var(--beibei-accent);text-shadow:0 0 7px #ffffff}
+.beibei-widget .beibei-launcher:hover .beibei-character{animation:beibei-wave .8s ease-in-out infinite}
+@keyframes beibei-arrive{0%{opacity:0;transform:translateY(22px) scale(.75,.9) rotate(-9deg)}40%{opacity:1;transform:translateY(-13px) scale(1.03) rotate(5deg)}65%{transform:translateY(2px) scale(1.06,.93) rotate(-3deg)}82%{transform:translateY(-5px) scale(.98,1.02)}100%{transform:translateY(0) scale(1) rotate(0)}}
+@keyframes beibei-plan{0%,65%,100%{transform:rotate(0)}75%{transform:rotate(-3deg) translateY(-3px)}85%{transform:rotate(2deg)}}
+@keyframes beibei-read{0%,100%{transform:translateY(0) rotate(-1deg)}45%{transform:translateY(-3px) rotate(2deg)}60%{transform:translateY(-2px) rotate(0)}}
+@keyframes beibei-explore{0%,100%{transform:translateX(0) rotate(0)}35%{transform:translateX(-3px) rotate(-3deg)}70%{transform:translateX(2px) rotate(2deg)}}
+@keyframes beibei-taste{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-5px) rotate(2deg)}}
+@keyframes beibei-cheer{0%,55%,100%{transform:translateY(0)}65%,85%{transform:translateY(-7px) rotate(-2deg)}75%,95%{transform:translateY(0) rotate(1deg)}}
+@keyframes beibei-announce{0%,60%,100%{transform:rotate(0)}70%,90%{transform:rotate(-3deg)}80%{transform:rotate(3deg)}}
+@media(prefers-reduced-motion:reduce){.beibei-widget[data-motion] .beibei-entrance,.beibei-widget[data-motion] .beibei-character,.beibei-widget[data-motion] .beibei-launcher:hover .beibei-character,.beibei-widget[data-motion] .beibei-sparkle{animation:none}}
+
+/* Layered reactions: body motion, pointer attention, ground shadow and status accents. */
+.beibei-portrait{display:block;width:100%;height:100%;position:relative}
+.beibei-ground{position:absolute;bottom:0;left:22%;width:56%;height:10px;border-radius:50%;background:#315b8c22;filter:blur(4px);animation:beibei-shadow 4.5s ease-in-out infinite}
+.beibei-emote{position:absolute;right:0;top:6%;display:grid;place-items:center;min-width:25px;height:25px;padding:0 5px;border:1px solid var(--beibei-accent);border-radius:50% 50% 50% 5px;background:#ffffffed;color:#416693;font-size:16px;font-weight:700;opacity:0;transform:translateY(5px) scale(.6);transition:.2s;pointer-events:none}
+.beibei-launcher:hover .beibei-emote,.beibei-launcher:focus-visible .beibei-emote,.beibei-widget:not([data-activity=idle]) .beibei-emote{opacity:1;transform:translateY(0) scale(1)}
+.beibei-confetti{position:absolute;inset:0;pointer-events:none}.beibei-confetti i{position:absolute;left:8%;top:30%;color:var(--beibei-accent);font-size:15px;font-style:normal;opacity:0}.beibei-confetti i:nth-child(2){left:80%;top:44%;animation-delay:.12s}.beibei-confetti i:nth-child(3){left:65%;top:5%;animation-delay:.25s}
+.beibei-launcher:hover .beibei-confetti i,.beibei-widget[data-activity=happy] .beibei-confetti i{animation:beibei-confetti 1.5s ease-out infinite}
+.beibei-widget[data-activity=thinking] .beibei-character{animation:beibei-think 1.8s ease-in-out infinite}
+.beibei-widget[data-activity=thinking] .beibei-emote{animation:beibei-ponder 1s ease-in-out infinite}
+.beibei-widget[data-activity=happy] .beibei-character{animation:beibei-celebrate .85s ease-in-out 3}
+.beibei-widget[data-activity=error] .beibei-character{animation:beibei-reassure 2.5s ease-in-out infinite}
+.beibei-dialog:not([hidden]){animation:beibei-dialog-in .25s ease-out both;transform-origin:bottom right}
+@keyframes beibei-shadow{0%,100%{transform:scaleX(1);opacity:.65}50%{transform:scaleX(.72);opacity:.35}}
+@keyframes beibei-confetti{0%{opacity:0;transform:translateY(8px) scale(.4) rotate(-20deg)}30%{opacity:1}100%{opacity:0;transform:translateY(-22px) scale(1.1) rotate(30deg)}}
+@keyframes beibei-think{0%,100%{transform:rotate(-5deg) translateY(0)}50%{transform:rotate(4deg) translateY(-5px)}}
+@keyframes beibei-ponder{0%,100%{opacity:.4;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+@keyframes beibei-celebrate{0%,100%{transform:translateY(0) scale(1)}25%{transform:translateY(2px) scale(1.06,.92)}55%{transform:translateY(-14px) scale(.96,1.04) rotate(-4deg)}80%{transform:translateY(0) scale(1.04,.96)}}
+@keyframes beibei-reassure{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg) translateY(-2px)}}
+@keyframes beibei-dialog-in{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:600px){.beibei-widget:not([data-activity=idle]) .beibei-greeting{display:block;right:91px;top:24px;font-size:11px;max-width:200px;white-space:normal;width:max-content}.beibei-emote{min-width:21px;height:21px;font-size:13px}}
+@media(prefers-reduced-motion:reduce){.beibei-widget .beibei-portrait{transform:none;transition:none}.beibei-widget[data-motion] .beibei-character,.beibei-widget[data-motion] .beibei-emote,.beibei-widget[data-motion] .beibei-ground,.beibei-widget[data-motion] .beibei-confetti i,.beibei-widget .beibei-dialog:not([hidden]){animation:none}.beibei-widget .beibei-confetti{display:none}}
+
+/* Real head-direction and expression frames; the button remains the chat launcher. */
+.beibei-sprite-still,.beibei-sprite-bounce{position:relative;display:block;width:100%;height:100%}
+.beibei-sprite{position:absolute;inset:auto 0 0;aspect-ratio:1;background-size:400% 400%;background-repeat:no-repeat;filter:drop-shadow(0 7px 8px #254e7d26)}
+.beibei-sprite-bounce{transform-origin:50% 80%;animation:beibei-poke .42s linear both}
+.beibei-widget[data-activity=idle]:has(.beibei-portrait[data-sprite-ready=true]) .beibei-launcher:hover .beibei-character{animation:beibei-float 4.5s ease-in-out infinite}
+@keyframes beibei-poke{0%,100%{transform:scale(1)}18%{transform:scale(1.1,.86)}45%{transform:scale(.95,1.08)}72%{transform:scale(1.03,.97)}}
+@media(prefers-reduced-motion:reduce){.beibei-widget[data-motion] .beibei-sprite-bounce,.beibei-widget[data-motion]:has(.beibei-portrait[data-sprite-ready=true]) .beibei-launcher:hover .beibei-character{animation:none}}
+
+/* Give conversation its own scroll track; errors must never squeeze it out. */
+.beibei-widget.chat-open .beibei-launcher{visibility:hidden}
+.beibei-dialog .beibei-chat .chat-panel{display:grid;grid-template-rows:minmax(0,1fr) auto auto;min-height:0;padding:0;overflow:hidden}
+.beibei-dialog .beibei-chat .chat-messages{min-height:0;max-height:none;overflow-y:auto;padding:18px 16px;scroll-padding-top:12px}
+.beibei-dialog .beibei-chat .chat-input{margin:8px 14px;padding:8px;border-radius:14px}
+.beibei-dialog .beibei-chat .chat-input textarea{height:52px;min-height:52px;max-height:80px;font-size:14px;padding:3px}
+.beibei-dialog .beibei-chat .chat-privacy{margin:0;padding:0 14px 12px;min-height:30px;align-items:center}
+.beibei-dialog .beibei-chat .chat-privacy label{font-size:11px;line-height:1.5}
+.beibei-dialog .assistant-error:empty{display:none}
+.beibei-dialog .assistant-error{margin-top:14px}
+.beibei-dialog .assistant-error .error{max-height:none;overflow:visible;line-height:1.6;padding:10px 12px;margin-bottom:10px;white-space:normal;overflow-wrap:anywhere}
+.beibei-dialog .assistant-error .chips{gap:7px;margin:0}
+.beibei-dialog .assistant-error .secondary{padding:7px 10px;min-height:34px;font-size:12px}
+@media(max-width:600px){.beibei-dialog .beibei-chat .chat-input textarea{font-size:16px}}
