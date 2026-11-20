@@ -1,4 +1,5 @@
 import asyncio
+from contextvars import ContextVar
 import json
 import os
 import re
@@ -29,7 +30,39 @@ TOOLS = [
     dict(type='function',function=dict(name='read_timetable',description='读取用户自愿传入的本地课表上下文',parameters=dict(type='object',properties={}))),
 ]
 
-def execute(name, args, timetable,shared=False):
+TOOL_LABELS = {
+    'search_competitions':'检索赛事资料', 'search_dining':'查询就餐资料',
+    'search_services':'检索办事指南', 'get_calendar':'查询学校校历',
+    'read_timetable':'读取已分享课表', 'find_free_periods':'计算课表空档',
+    'find_rooms':'查询学校排课与教室', 'plan_route':'查询路线参考',
+    'draft_calendar':'计算校历草稿', 'search_campus':'检索校园资料',
+}
+_progress = ContextVar('agent_progress', default=None)
+
+
+def report_progress(event):
+    callback = _progress.get()
+    if callback:
+        callback(event)
+
+
+def execute(name, args, timetable, shared=False):
+    label = TOOL_LABELS.get(name)
+    if label:
+        report_progress(dict(type='tool_start', tool=name, label=label))
+    try:
+        result = _execute(name, args, timetable, shared)
+    except Exception:
+        if label:
+            report_progress(dict(type='tool_end', tool=name, label=label, status='error'))
+        raise
+    if label:
+        failed = isinstance(result, dict) and (bool(result.get('error')) or result.get('status') == 'unavailable')
+        report_progress(dict(type='tool_end', tool=name, label=label, status='error' if failed else 'done'))
+    return result
+
+
+def _execute(name, args, timetable,shared=False):
     if not isinstance(args,dict):raise ValueError('工具参数须为对象')
     if name=='search_competitions':return search_competitions(args.get('query',''),args.get('scope',''),args.get('status',''))
     if name=='search_dining':return search_dining(args.get('query',''),args.get('restaurant',''))
@@ -303,7 +336,18 @@ def actions_from_trace(trace):
     return actions
 
 
-async def respond(message, history, timetable,shared=False):
+async def respond(message, history, timetable, shared=False, progress=None):
+    token = _progress.set(progress)
+    try:
+        report_progress(dict(type='status', label='已接收问题，正在检查请求条件'))
+        result = await _respond(message, history, timetable, shared)
+        report_progress(dict(type='status', label='处理完成，正在返回回答'))
+        return result
+    finally:
+        _progress.reset(token)
+
+
+async def _respond(message, history, timetable,shared=False):
     clock=parse_clock_request(message,shanghai_day())
     if clock:
         if clock.get('error'):return dict(mode='offline',answer=clock['error'],trace=[],citations=[],actions=[])
@@ -337,7 +381,7 @@ async def respond(message, history, timetable,shared=False):
     # Website questions start with read-only retrieval, even if the model would skip tools.
     initial=[]
     for i,name in enumerate(domain_tools(message)):
-        args={'query':message};result=execute(name,args,timetable,shared)
+        args={'query':message};result=await asyncio.to_thread(execute,name,args,timetable,shared)
         trace.append(dict(tool=name,arguments=args,result=result))
         initial.append((dict(id='website-'+str(i),type='function',function=dict(name=name,arguments=json.dumps(args,ensure_ascii=False))),result))
     if initial:
@@ -348,6 +392,7 @@ async def respond(message, history, timetable,shared=False):
             base=os.getenv('LLM_BASE_URL','https://api.openai.com/v1').rstrip('/')
             payload=dict(model=os.getenv('LLM_MODEL',''),messages=messages,tools=TOOLS,temperature=0.2,max_tokens=1600)
             if '.aliyuncs.com/' in base and os.getenv('LLM_MODEL','').startswith('qwen'):payload['enable_thinking']=False
+            report_progress(dict(type='status', label='正在等待模型响应'))
             try:
                 if hiagent_configured():
                     r=await hiagent_completion(client,messages,TOOLS)

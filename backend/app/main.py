@@ -1,5 +1,7 @@
 from .hiagent import configured as hiagent_configured
 import csv
+import asyncio
+import json
 import hashlib
 import hmac
 import io
@@ -14,6 +16,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Literal
 from fastapi import FastAPI, HTTPException, Header, Request, Response
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 from .config import load_environment
@@ -244,6 +247,60 @@ async def chat(payload: ChatInput,request: Request):
     except (ValueError,KeyError,TypeError): raise HTTPException(422,'任务参数无效，请检查日期、节次或建筑')
     except Exception:
         raise HTTPException(502,'模型服务暂不可用，请检查本地配置或切换离线模式')
+
+@app.post('/api/agent/chat/stream')
+async def chat_stream(payload: ChatInput, request: Request):
+    limited(request, 'agent', 20)
+
+    async def events():
+        queue = asyncio.Queue()
+        loop = asyncio.get_running_loop()
+        active = True
+
+        def progress(event):
+            # Tools also run in worker threads. Only public stage labels are sent.
+            if active:
+                loop.call_soon_threadsafe(queue.put_nowait, event)
+
+        async def run():
+            try:
+                result = await asyncio.wait_for(respond(
+                    payload.message, [m.model_dump() for m in payload.history],
+                    [m.model_dump() for m in payload.timetable] if payload.share_timetable else [],
+                    payload.share_timetable, progress=progress), timeout=240)
+                await queue.put(dict(type='result', result=result))
+            except asyncio.TimeoutError:
+                await queue.put(dict(type='error', message='等待超时，请缩小问题范围后重试。'))
+            except ModelServiceError as exc:
+                await queue.put(dict(type='error', message=str(exc)))
+            except (ValueError, KeyError, TypeError):
+                await queue.put(dict(type='error', message='任务参数无效，请检查日期、节次或建筑'))
+            except Exception:
+                await queue.put(dict(type='error', message='校园助手暂时无法完成请求，请稍后重试。'))
+
+        task = asyncio.create_task(run())
+        try:
+            yield json.dumps(dict(type='status', label='服务器已接收问题'), ensure_ascii=False) + '\n'
+            while True:
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=5)
+                except asyncio.TimeoutError:
+                    event = dict(type='heartbeat')
+                yield json.dumps(event, ensure_ascii=False) + '\n'
+                if event['type'] in ('result', 'error'):
+                    break
+        finally:
+            active = False
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+    return StreamingResponse(events(), media_type='application/x-ndjson', headers={
+        'Cache-Control':'no-cache, no-transform', 'X-Accel-Buffering':'no',
+    })
+
 
 @app.get('/api/admin/overview')
 def overview(x_admin_token: str=Header(default='')):
