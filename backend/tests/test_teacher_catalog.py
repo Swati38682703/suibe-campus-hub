@@ -2,6 +2,7 @@ import json
 import pytest
 from backend.app import teacher_catalog as catalog
 from backend.app import teacher_crawler as crawler
+from backend.app import teacher_sync
 from backend.app.database import Session,Record
 
 SOURCE=dict(name='测试学院',home='https://www.suibe.edu.cn/test/',directory='https://www.suibe.edu.cn/test/szdw/list.htm')
@@ -16,7 +17,7 @@ def test_public_teacher_catalog_is_shared_with_detail_search_and_correction(clie
     assert data==[row]
     assert not any('虚构' in t['source'] for t in client.get('/api/teachers').json())
     assert client.get('/api/teachers/'+row['id']).json()==row
-    assert client.get('/api/teachers/sources').json()['automatic'] is False
+    assert client.get('/api/teachers/sources').json()['automatic'] is True
     result=client.get('/api/search?q=张老师').json()
     assert any(t['id']==row['id'] and t['source_url']==row['source_url'] for t in result)
     assert client.post('/api/teachers/'+row['id']+'/correction',json={'text':'请核对办公地点'}).status_code==201
@@ -105,3 +106,13 @@ def test_collected_dataset_has_traceable_sources_and_consistent_counts():
         assert not {'phone','mobile','birthday','biography'}&row.keys()
     for source in data['sources']:
         assert source['count']==sum(r['department']==source['name'] for r in rows)
+
+
+def test_twice_yearly_refresh_schedule_and_safety_gate():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    zone=ZoneInfo('Asia/Shanghai')
+    assert teacher_sync.latest_target(datetime(2027,1,14,23,59,tzinfo=zone)).isoformat().startswith('2026-07-15')
+    assert teacher_sync.latest_target(datetime(2027,1,15,0,0,tzinfo=zone)).isoformat().startswith('2027-01-15')
+    with pytest.raises(ValueError,match='拒绝覆盖'):
+        teacher_sync.validate(dict(teachers=[],sources=[]))

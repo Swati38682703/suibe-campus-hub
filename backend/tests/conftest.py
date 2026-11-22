@@ -10,6 +10,7 @@ os.environ['APP_SECRET']='test-secret-only'
 os.environ['ADMIN_TOKEN']='test-admin-only'
 os.environ['SCHOOL_ROOMS_MODE']='demo'
 os.environ['COMPETITIONS_SYNC_ENABLED']='0'
+os.environ['TEACHERS_SYNC_ENABLED']='0'
 os.environ['SCHOOL_ROOMS_PREWARM_ENABLED']='0'
 os.environ.pop('LLM_API_KEY',None)
 os.environ['HIAGENT_API_KEY']=''

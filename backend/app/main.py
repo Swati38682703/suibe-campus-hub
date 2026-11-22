@@ -26,6 +26,7 @@ from .services import available_rooms, route, search, course_detail
 from .school_rooms import SchoolRoomError
 from . import room_cache
 from .teacher_catalog import get_teachers, status as teacher_status
+from .teacher_sync import sync_loop as teacher_sync_loop, enabled as teacher_sync_enabled
 from .site_knowledge import shanghai_day
 from .competition_feed import get_competitions, sync_status, sync_loop, refresh_feed, enabled as competition_sync_enabled
 from .competition_import import ArticleInput, ConfirmedArticle, preview as article_preview, publish as article_publish
@@ -36,6 +37,7 @@ async def lifespan(app):
     initialize()
     sync_task = asyncio.create_task(sync_loop()) if competition_sync_enabled() else None
     warm_task = asyncio.create_task(room_cache.warm_loop()) if room_cache.enabled() else None
+    teacher_task = asyncio.create_task(teacher_sync_loop()) if teacher_sync_enabled() else None
     try:
         yield
     finally:
@@ -44,6 +46,10 @@ async def lifespan(app):
             with suppress(asyncio.CancelledError):
                 await warm_task
         await room_cache.stop_updates()
+        if teacher_task:
+            teacher_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await teacher_task
         if sync_task:
             sync_task.cancel()
             with suppress(asyncio.CancelledError):
