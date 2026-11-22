@@ -24,6 +24,7 @@ load_environment()
 from .database import initialize, items, get, Session, Record, Review, Feedback, ROOT
 from .services import available_rooms, route, search, course_detail
 from .school_rooms import SchoolRoomError
+from . import room_cache
 from .site_knowledge import shanghai_day
 from .competition_feed import get_competitions, sync_status, sync_loop, refresh_feed, enabled as competition_sync_enabled
 from .competition_import import ArticleInput, ConfirmedArticle, preview as article_preview, publish as article_publish
@@ -33,9 +34,15 @@ from .agent import respond,ModelServiceError
 async def lifespan(app):
     initialize()
     sync_task = asyncio.create_task(sync_loop()) if competition_sync_enabled() else None
+    warm_task = asyncio.create_task(room_cache.warm_loop()) if room_cache.enabled() else None
     try:
         yield
     finally:
+        if warm_task:
+            warm_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await warm_task
+        await room_cache.stop_updates()
         if sync_task:
             sync_task.cancel()
             with suppress(asyncio.CancelledError):
@@ -115,6 +122,19 @@ def detail(id: str,request: Request):
     kind=request.url.path.split('/')[2]; r=get(kind,id)
     if not r: raise HTTPException(404,'记录不存在')
     return r
+
+@app.get('/api/rooms/snapshot')
+async def rooms_snapshot(date: str='', refresh: bool=False):
+    day=date or shanghai_day()
+    try:
+        target=datetime.strptime(day,'%Y-%m-%d').date()
+        if target.isoformat()!=day:raise ValueError()
+    except ValueError:
+        raise HTTPException(422,'日期格式须为 YYYY-MM-DD')
+    if os.getenv('SCHOOL_ROOMS_MODE','school')=='demo':
+        rows=available_rooms(day,[1])
+        return dict(date=day,rows=rows,updatedAt=None,ageSeconds=None,stale=False,refreshing=False,error='',state='demo')
+    return await room_cache.page_snapshot(day,refresh)
 
 @app.get('/api/rooms/available')
 def rooms(date: str='',periods: str='3,4',buildings: str='',min_capacity: int=0,q: str='',types: str=''):

@@ -37,13 +37,13 @@ def _lists(payload, keys):
         result[key]=rows
     return result
 
-def snapshot(day):
+def snapshot(day,force=False):
     target=date.fromisoformat(day)
     if target.isoformat()!=day: raise ValueError('日期格式须为 YYYY-MM-DD')
     # Only cache bookkeeping is global. Network requests for other dates do not queue here.
     with _lock:
         cached=_cache.get(day)
-        if cached and time.monotonic()-cached[0]<60:return cached[1]
+        if not force and cached and time.monotonic()-cached[0]<60:return cached[1]
         pending=_inflight.get(day)
         owner=pending is None
         if owner:
