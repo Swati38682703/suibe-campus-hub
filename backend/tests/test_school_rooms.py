@@ -21,6 +21,11 @@ def school(monkeypatch):
             result[key]=dict(list=rows,totalCount=0,totalPage=0)
         return httpx.Response(200,json=dict(result='ok',data=result),request=httpx.Request('POST',url))
     monkeypatch.setattr(school_rooms.httpx,'post',post)
+    class Client:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def post(self,*args,**kwargs):return school_rooms.httpx.post(*args,**kwargs)
+    monkeypatch.setattr(school_rooms.httpx,'Client',Client)
     yield calls
     school_rooms._cache.clear()
 
@@ -79,3 +84,75 @@ def test_school_search_uses_official_names_and_links(client,school,monkeypatch):
     rooms=[r for r in rows if r['kind']=='rooms']
     assert rooms and all(r['name']=='SA101' and r['data_mode']=='school' for r in rooms)
     assert client.get('/api/rooms/'+rooms[0]['id']+'?day=2026-10-17').status_code==200
+
+
+@pytest.fixture
+def snapshot_state():
+    school_rooms._cache.clear()
+    assert not school_rooms._inflight
+    yield
+    school_rooms._cache.clear()
+    assert not school_rooms._inflight
+
+
+def test_same_date_requests_share_one_fetch(monkeypatch,snapshot_state):
+    from concurrent.futures import Future,ThreadPoolExecutor
+    from threading import Event
+    entered,release,waiting=Event(),Event(),Event()
+    calls=[]
+    class ObservedFuture(Future):
+        def result(self,*args,**kwargs):
+            waiting.set()
+            return super().result(*args,**kwargs)
+    def fetch(day,target):
+        calls.append(day);entered.set()
+        assert release.wait(3)
+        return [{'date':day}]
+    monkeypatch.setattr(school_rooms,'Future',ObservedFuture)
+    monkeypatch.setattr(school_rooms,'_fetch_snapshot',fetch)
+    with ThreadPoolExecutor(2) as pool:
+        first=pool.submit(school_rooms.snapshot,'2026-11-22')
+        try:
+            assert entered.wait(2)
+            second=pool.submit(school_rooms.snapshot,'2026-11-22')
+            assert waiting.wait(2)
+        finally:release.set()
+        assert first.result(2)==second.result(2)==[{'date':'2026-11-22'}]
+    assert calls==['2026-11-22']
+
+
+def test_other_dates_and_cached_reads_do_not_wait_for_slow_fetch(monkeypatch,snapshot_state):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    entered,release=Event(),Event()
+    def fetch(day,target):
+        if day=='2026-11-22':
+            entered.set();assert release.wait(3)
+        return [{'date':day}]
+    monkeypatch.setattr(school_rooms,'_fetch_snapshot',fetch)
+    cached=school_rooms.snapshot('2026-11-21')
+    with ThreadPoolExecutor(3) as pool:
+        slow=pool.submit(school_rooms.snapshot,'2026-11-22')
+        try:
+            assert entered.wait(2)
+            assert pool.submit(school_rooms.snapshot,'2026-11-23').result(1)==[{'date':'2026-11-23'}]
+            assert pool.submit(school_rooms.snapshot,'2026-11-21').result(1)==cached
+        finally:release.set()
+        slow.result(2)
+
+
+def test_cache_expiry_and_failure_do_not_serve_stale_data(monkeypatch,snapshot_state):
+    clock=[100.0];calls=[]
+    monkeypatch.setattr(school_rooms.time,'monotonic',lambda:clock[0])
+    def fetch(day,target):
+        calls.append(day)
+        if len(calls)==2:raise school_rooms.SchoolRoomError('upstream unavailable')
+        return [{'version':len(calls)}]
+    monkeypatch.setattr(school_rooms,'_fetch_snapshot',fetch)
+    assert school_rooms.snapshot('2026-11-22')==[{'version':1}]
+    clock[0]=159
+    assert school_rooms.snapshot('2026-11-22')==[{'version':1}]
+    clock[0]=160
+    with pytest.raises(school_rooms.SchoolRoomError):school_rooms.snapshot('2026-11-22')
+    assert not school_rooms._inflight
+    assert school_rooms.snapshot('2026-11-22')==[{'version':3}]
