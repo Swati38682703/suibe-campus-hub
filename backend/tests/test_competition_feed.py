@@ -54,7 +54,9 @@ def test_page_and_model_share_live_database_and_seed_fallback(client,monkeypatch
     assert any(r['id']==row['id'] and r['status']=='open' for r in result['items'])
     row['deadline']=''
     assert site_knowledge.competition_status(row,'2026-11-22')=='unknown'
-    assert client.get('/api/competitions/sync-status').json()['autoCount']==1
+    status=client.get('/api/competitions/sync-status').json()
+    assert status['autoCount']==1 and status['intervalHours']==24
+    assert '每天检查一次' in status['scheduleNote']
     assert client.post('/api/admin/competitions/refresh').status_code==403
 
 

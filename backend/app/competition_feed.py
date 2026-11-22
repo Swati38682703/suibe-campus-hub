@@ -28,7 +28,7 @@ SOURCES = [
     ('统计与数据科学学院', 'https://www.suibe.edu.cn/tsxy/'),
     ('图书馆', 'https://lib.suibe.edu.cn/'),
 ]
-INTERVAL = 6 * 3600
+INTERVAL = 24 * 3600
 AGENT = 'SUIBE-CampusHub/1.0'
 _lock = threading.Lock()
 log = logging.getLogger(__name__)
@@ -215,11 +215,11 @@ def sync_status():
     with Session() as session:
         row = session.get(Record, ('competition_sync', 'status'))
         status = dict(row.data) if row else {}
-    return dict(status, enabled=enabled(), intervalHours=6,
+    return dict(status, enabled=enabled(), intervalHours=24,
                 sourceCount=len(SOURCES), autoCount=len(items('competition_feed')),
                 importedCount=len(items('competition_import')),
                 wechat='暂未接入公众号官方接口；支持粘贴正文辅助导入，人工核对后发布。官网转发通知正常同步。',
-                scheduleNote='服务器运行期间每6小时检查，启动时补检查；休眠期间不执行。')
+                scheduleNote='服务器运行期间每天检查一次，启动时补检查；休眠期间不执行。')
 
 
 class PublicFetcher:
