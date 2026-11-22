@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {ArrowRight,Bell,Eye,EyeOff,Plus,RotateCcw,Save,Search,ShieldCheck,Trophy,Utensils,Users,MessageSquare} from 'lucide-react';
 import {api,localDay} from './api';
-import {COMPETITIONS} from './competitions-data';
+import {useCompetitions} from './use-competitions';
 import {useDemoContent,saveDemoPatch,resetDemoContent,type DemoKind,type DemoPatch} from './demo-content';
 import {PageTitle,useNotice,Empty} from './ui';
 import CourseReviewAdmin from './course-review-admin';
@@ -27,7 +27,8 @@ function newRow(kind:DemoKind):Row{
 }
 export default function AdminDemo(){
  const notice=useNotice(),[kind,setKind]=useState<AdminKind>('competitions'),[query,setQuery]=useState(''),[draft,setDraft]=useState<Row|null>(null),[baseDining,setBaseDining]=useState<Row[]>([]),[baseAnnouncements,setBaseAnnouncements]=useState<Row[]>([]),[baseTeachers,setBaseTeachers]=useState<Row[]>([]),[error,setError]=useState(''),[imageBusy,setImageBusy]=useState(false);
- const contests=useDemoContent('competitions',COMPETITIONS,true) as Row[],dining=useDemoContent('dining',baseDining,true),announcements=useDemoContent('announcements',baseAnnouncements,true),teachers=useDemoContent('teachers',baseTeachers,true);
+ const {rows:competitionRows}=useCompetitions();
+ const contests=useDemoContent('competitions',competitionRows,true) as Row[],dining=useDemoContent('dining',baseDining,true),announcements=useDemoContent('announcements',baseAnnouncements,true),teachers=useDemoContent('teachers',baseTeachers,true);
  const load=()=>{setError('');Promise.all([api('/dining'),api('/announcements'),api('/teachers')]).then(([d,a,t])=>{setBaseDining(d);setBaseAnnouncements(a);setBaseTeachers(t)}).catch(e=>setError(e.message))};
  useEffect(load,[]);
  const rows=kind==='competitions'?contests:kind==='dining'?dining.filter(d=>!d.demo):kind==='teachers'?teachers:announcements;

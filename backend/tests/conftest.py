@@ -9,6 +9,7 @@ os.environ['DATABASE_URL']='sqlite:///'+str(Path(task_tmp.name)/'test.db')
 os.environ['APP_SECRET']='test-secret-only'
 os.environ['ADMIN_TOKEN']='test-admin-only'
 os.environ['SCHOOL_ROOMS_MODE']='demo'
+os.environ['COMPETITIONS_SYNC_ENABLED']='0'
 os.environ.pop('LLM_API_KEY',None)
 os.environ['HIAGENT_API_KEY']=''
 from fastapi.testclient import TestClient

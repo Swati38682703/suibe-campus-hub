@@ -11,7 +11,7 @@ import secrets
 import threading
 import time
 from collections import defaultdict, deque
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Literal
@@ -25,12 +25,20 @@ from .database import initialize, items, get, Session, Record, Review, Feedback,
 from .services import available_rooms, route, search, course_detail
 from .school_rooms import SchoolRoomError
 from .site_knowledge import shanghai_day
+from .competition_feed import get_competitions, sync_status, sync_loop, refresh_feed, enabled as competition_sync_enabled
 from .agent import respond,ModelServiceError
 
 @asynccontextmanager
 async def lifespan(app):
     initialize()
-    yield
+    sync_task = asyncio.create_task(sync_loop()) if competition_sync_enabled() else None
+    try:
+        yield
+    finally:
+        if sync_task:
+            sync_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await sync_task
 
 app=FastAPI(title='SUIBE Campus Hub',version='0.1.0',lifespan=lifespan)
 secret_file=ROOT/'.local-secret'
@@ -75,8 +83,17 @@ def catalog(request: Request,q: str='',dept: str='',title: str=''):
 
 @app.get('/api/competitions')
 def competitions():
-    from .site_knowledge import COMPETITIONS
-    return COMPETITIONS
+    return get_competitions()
+
+@app.get('/api/competitions/sync-status')
+def competitions_sync_status():
+    return sync_status()
+
+@app.post('/api/admin/competitions/refresh')
+async def competitions_refresh(x_admin_token: str=Header(default='')):
+    admin(x_admin_token)
+    await asyncio.to_thread(refresh_feed, True)
+    return sync_status()
 
 @app.get('/api/teachers/{id}')
 @app.get('/api/announcements/{id}')

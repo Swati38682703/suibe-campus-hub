@@ -6,14 +6,14 @@ from zoneinfo import ZoneInfo
 from .database import ROOT,items
 from .dining import dining
 
-COMPETITIONS=json.loads((ROOT/'data'/'competitions.json').read_text(encoding='utf-8'))
+from .competition_feed import SEED as COMPETITIONS, get_competitions
 STATUS_LABELS={'open':'报名期内','upcoming':'即将开放','closed':'报名已截止 / 已结束','unknown':'报名待核实'}
 
 def shanghai_day():
     return datetime.now(ZoneInfo('Asia/Shanghai')).date().isoformat()
 
 def competition_status(row,today):
-    if row.get('endedOn','9999')<today or row.get('deadline','9999')<today:return 'closed'
+    if (row.get('endedOn') or '9999')<today or (row.get('deadline') or '9999')<today:return 'closed'
     if not row.get('deadline') or (date.fromisoformat(today)-date.fromisoformat(row['checked'])).days>7:return 'unknown'
     if row.get('registrationStart','')>today:return 'upcoming'
     return 'open'
@@ -41,10 +41,10 @@ def rank_rows(rows,query,fields):
 def search_competitions(query='',scope='',status=''):
     if scope not in ['', 'all','campus','major'] or status not in ['', 'all',*STATUS_LABELS]:raise ValueError('赛事筛选条件无效')
     today=shanghai_day()
-    rows=[dict(c,kind='competitions',status=competition_status(c,today),url='/competitions') for c in COMPETITIONS]
+    rows=[dict(c,kind='competitions',status=competition_status(c,today),url='/competitions') for c in get_competitions()]
     rows=[dict(r,statusLabel=STATUS_LABELS[r['status']]) for r in rows if (scope in ['', 'all'] or r['scope']==scope) and (status in ['', 'all'] or r['status']==status)]
     rows.sort(key=lambda r:({'open':0,'upcoming':1,'unknown':2,'closed':3}[r['status']],r.get('deadline','9999')))
-    rows=rank_rows(rows,query,['title','summary','field','audience','team','organizer','notice','schedule'])
+    rows=rank_rows(rows,query,['title','summary','field','audience','team','organizer','notice','schedule','sourceExcerpt'])
     return dict(found=bool(rows),items=rows,asOf=today,source='网站赛事广场的共用资料',notice='报名状态按北京时间与核验时效计算；资格以原文为准。报名截止与提交材料截止须分开，不能把已截止的比赛说成可报名。')
 
 def search_dining(query='',restaurant=''):
