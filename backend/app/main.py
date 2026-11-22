@@ -25,6 +25,7 @@ from .database import initialize, items, get, Session, Record, Review, Feedback,
 from .services import available_rooms, route, search, course_detail
 from .school_rooms import SchoolRoomError
 from . import room_cache
+from .teacher_catalog import get_teachers, status as teacher_status
 from .site_knowledge import shanghai_day
 from .competition_feed import get_competitions, sync_status, sync_loop, refresh_feed, enabled as competition_sync_enabled
 from .competition_import import ArticleInput, ConfirmedArticle, preview as article_preview, publish as article_publish
@@ -84,7 +85,7 @@ def health(): return dict(status='ok',data_mode='demo',agent_mode='llm' if hiage
 def catalog(request: Request,q: str='',dept: str='',title: str=''):
     kind=request.url.path.split('/')[-1]
     if kind in ['semesters','calendar']: return items('calendar')
-    rows=items(kind)
+    rows=get_teachers() if kind=='teachers' else items(kind)
     rows=[r for r in rows if q.casefold() in ' '.join(str(v) for v in r.values()).casefold() and (not dept or r.get('department')==dept) and (not title or r.get('title')==title)]
     if kind=='courses': return [course_detail(r['id']) for r in rows]
     return rows
@@ -116,10 +117,14 @@ async def competitions_refresh(x_admin_token: str=Header(default='')):
     await asyncio.to_thread(refresh_feed, True)
     return sync_status()
 
+@app.get('/api/teachers/sources')
+def teachers_sources():return teacher_status()
+
 @app.get('/api/teachers/{id}')
 @app.get('/api/announcements/{id}')
 def detail(id: str,request: Request):
-    kind=request.url.path.split('/')[2]; r=get(kind,id)
+    kind=request.url.path.split('/')[2]
+    r=next((r for r in get_teachers() if r['id']==id),None) if kind=='teachers' else get(kind,id)
     if not r: raise HTTPException(404,'记录不存在')
     return r
 

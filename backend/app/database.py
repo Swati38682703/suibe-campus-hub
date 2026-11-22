@@ -51,6 +51,10 @@ def initialize():
                 for i,item in enumerate(items):
                     s.add(Record(kind=kind,id=str(item.get('id',i)),data=item))
         s.flush()
+        teacher_file=ROOT/'data/teachers_official.json'
+        platform_note=s.get(Record,('knowledge','k1'))
+        if teacher_file.exists() and platform_note and platform_note.data.get('source')=='项目说明':
+            platform_note.data={**platform_note.data,'text':'教室展示学校查询及带读取时间的快照；教师检索标注学院官网公开资料来源，未录入字段请查看原文；课程点评目录仍含示例数据，地图路线以每条来源说明为准。'}
         legacy=s.get(Record,('buildings','A'))
         if legacy and ((legacy.data.get('x')==90 and legacy.data.get('z')==60 and not legacy.data.get('layout_version')) or legacy.data.get('layout_version') in ['reference-map-v2','reference-map-v3','reference-map-v4','reference-map-v5','baidu-reference-v6']):
             kinds=['buildings','nodes','edges','facilities','landscape']

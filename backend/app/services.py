@@ -4,6 +4,7 @@ import heapq
 import math
 from datetime import date
 from .database import items, get
+from .teacher_catalog import get_teachers
 from .campus_map import DISPLAY_SCALE
 from .map_reference import WALKING_ROUTES
 
@@ -67,7 +68,7 @@ def search(q: str):
     if not q.strip(): return []
     kinds=['teachers','courses','announcements','buildings','knowledge']
     if os.getenv('SCHOOL_ROOMS_MODE','school')=='demo':kinds.append('rooms')
-    rows=[dict(kind=kind,**row) for kind in kinds for row in items(kind) if q.casefold() in ' '.join(str(v) for v in row.values()).casefold()]
+    rows=[dict(kind=kind,**row) for kind in kinds for row in (get_teachers() if kind=='teachers' else items(kind)) if q.casefold() in ' '.join(str(v) for v in row.values()).casefold()]
     room_match=re.search(r'(?:S[ABCD]{2}|S?[ABCD]|XXL)\d{1,4}',q,re.I)
     if os.getenv('SCHOOL_ROOMS_MODE','school')!='demo' and (room_match or q.strip() in ['教室','空教室','教室查询']):
         from .school_rooms import SchoolRoomError

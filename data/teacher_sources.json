@@ -1,0 +1,94 @@
+[
+  {
+    "name": "国际经贸学院",
+    "home": "https://www.suibe.edu.cn/jmxy/",
+    "slug": "jmxy",
+    "directory": "https://www.suibe.edu.cn/jmxy/szdw_12979/list.htm"
+  },
+  {
+    "name": "国际商务外语学院",
+    "home": "https://www.suibe.edu.cn/wyxy/",
+    "slug": "wyxy",
+    "directory": "https://www.suibe.edu.cn/wyxy/5023/list.htm",
+    "extraDirectories": [
+      {
+        "url": "https://www.suibe.edu.cn/wyxy/js/list.htm",
+        "title": "教授"
+      },
+      {
+        "url": "https://www.suibe.edu.cn/wyxy/fjs/list.htm",
+        "title": "副教授"
+      },
+      {
+        "url": "https://www.suibe.edu.cn/wyxy/js_17715/list.htm",
+        "title": "讲师"
+      }
+    ]
+  },
+  {
+    "name": "金融管理学院",
+    "home": "https://www.suibe.edu.cn/finance/",
+    "slug": "finance",
+    "directory": "https://www.suibe.edu.cn/finance/szdw/list.htm"
+  },
+  {
+    "name": "法学院",
+    "home": "https://www.suibe.edu.cn/fxy/",
+    "slug": "fxy",
+    "directory": "https://www.suibe.edu.cn/fxy/szdw/list.htm"
+  },
+  {
+    "name": "工商管理学院",
+    "home": "https://www.suibe.edu.cn/gsgl/",
+    "slug": "gsgl",
+    "directory": "https://www.suibe.edu.cn/gsgl/szdw/list.htm"
+  },
+  {
+    "name": "会计学院",
+    "home": "https://www.suibe.edu.cn/kjxy/",
+    "slug": "kjxy",
+    "directory": "https://www.suibe.edu.cn/kjxy/szdw/list.htm"
+  },
+  {
+    "name": "会展与传播学院",
+    "home": "https://www.suibe.edu.cn/hzly/",
+    "slug": "hzly",
+    "directory": "https://www.suibe.edu.cn/hzly/szdw/list.htm"
+  },
+  {
+    "name": "统计与数据科学学院",
+    "home": "https://www.suibe.edu.cn/tsxy/",
+    "slug": "tsxy",
+    "directory": "https://www.suibe.edu.cn/tsxy/5673/list.htm"
+  },
+  {
+    "name": "马克思主义学院",
+    "home": "https://www.suibe.edu.cn/mkszyxy/",
+    "slug": "mkszyxy",
+    "directory": "https://www.suibe.edu.cn/mkszyxy/szdw/list.htm"
+  },
+  {
+    "name": "国际组织学院（贸易谈判学院）",
+    "home": "https://www.suibe.edu.cn/gjzz/",
+    "slug": "gjzz",
+    "directory": "https://www.suibe.edu.cn/gjzz/szdw/list.htm"
+  },
+  {
+    "name": "国际中文教育学院",
+    "home": "https://www.suibe.edu.cn/sis/",
+    "slug": "sis",
+    "directory": "https://www.suibe.edu.cn/sis/szll/list.htm"
+  },
+  {
+    "name": "开放教育学院（高级研修学院）",
+    "home": "https://www.suibe.edu.cn/soe/",
+    "slug": "soe",
+    "directory": ""
+  },
+  {
+    "name": "体育健康学院",
+    "home": "https://www.suibe.edu.cn/tiyu/",
+    "slug": "tiyu",
+    "directory": "https://www.suibe.edu.cn/tiyu/szdw_13206/list.htm"
+  }
+]
