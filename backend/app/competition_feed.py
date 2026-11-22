@@ -151,7 +151,10 @@ def registration_deadline(text, published):
             inherited_year = next((m[1] for m in matches if m[1]), None)
             match = matches[-1]
             try:
-                day = date(int(match[1] or inherited_year or published.year), int(match[2]), int(match[3]))
+                year = match[1] or inherited_year or (published.year if published else None)
+                if not year:
+                    continue
+                day = date(int(year), int(match[2]), int(match[3]))
             except ValueError:
                 continue
             if not match[1] and not inherited_year and not (published <= day <= published + timedelta(days=120)):
@@ -192,14 +195,19 @@ def parse_article(html, url, source, now=None):
 
 
 def get_competitions():
+    def identity(url):
+        p = urlsplit(url)
+        return urlunsplit((p.scheme.lower(), p.netloc.lower(), p.path, p.query if p.hostname == 'mp.weixin.qq.com' else '', ''))
     rows = {r['id']:dict(r) for r in SEED}
-    by_url = {canonical_url(r['sourceUrl']):r['id'] for r in SEED}
-    for collected in items('competition_feed'):
-        old_id = by_url.get(canonical_url(collected['sourceUrl']))
+    by_url = {identity(r['sourceUrl']):r['id'] for r in SEED}
+    for collected in items('competition_feed') + items('competition_import'):
+        key = identity(collected['sourceUrl'])
+        old_id = by_url.get(key)
         if old_id:
             rows[old_id] = {**rows[old_id], **collected, 'id':old_id}
         else:
             rows[collected['id']] = collected
+            by_url[key] = collected['id']
     return list(rows.values())
 
 
@@ -209,7 +217,8 @@ def sync_status():
         status = dict(row.data) if row else {}
     return dict(status, enabled=enabled(), intervalHours=6,
                 sourceCount=len(SOURCES), autoCount=len(items('competition_feed')),
-                wechat='公众号文章页禁止自动抓取；保留现有原文入口，官网转发通知正常同步。',
+                importedCount=len(items('competition_import')),
+                wechat='暂未接入公众号官方接口；支持粘贴正文辅助导入，人工核对后发布。官网转发通知正常同步。',
                 scheduleNote='服务器运行期间每6小时检查，启动时补检查；休眠期间不执行。')
 
 

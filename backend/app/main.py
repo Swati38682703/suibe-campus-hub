@@ -26,6 +26,7 @@ from .services import available_rooms, route, search, course_detail
 from .school_rooms import SchoolRoomError
 from .site_knowledge import shanghai_day
 from .competition_feed import get_competitions, sync_status, sync_loop, refresh_feed, enabled as competition_sync_enabled
+from .competition_import import ArticleInput, ConfirmedArticle, preview as article_preview, publish as article_publish
 from .agent import respond,ModelServiceError
 
 @asynccontextmanager
@@ -88,6 +89,19 @@ def competitions():
 @app.get('/api/competitions/sync-status')
 def competitions_sync_status():
     return sync_status()
+
+@app.post('/api/competitions/import-preview')
+def competitions_import_preview(body: ArticleInput, request: Request):
+    limited(request, 'article-preview')
+    return article_preview(body)
+
+@app.post('/api/admin/competitions/import')
+def competitions_import(body: ConfirmedArticle, x_admin_token: str=Header(default='')):
+    admin(x_admin_token)
+    try:
+        return article_publish(body)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
 
 @app.post('/api/admin/competitions/refresh')
 async def competitions_refresh(x_admin_token: str=Header(default='')):

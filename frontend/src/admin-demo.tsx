@@ -6,6 +6,7 @@ import {useCompetitions} from './use-competitions';
 import {useDemoContent,saveDemoPatch,resetDemoContent,type DemoKind,type DemoPatch} from './demo-content';
 import {PageTitle,useNotice,Empty} from './ui';
 import CourseReviewAdmin from './course-review-admin';
+import CompetitionArticleImport from './competition-import';
 import {photoData} from './dining-store';
 import './admin-demo.css';
 type AdminKind=DemoKind|'courseReviews';
@@ -55,6 +56,7 @@ export default function AdminDemo(){
  return <div className="demo-admin"><PageTitle eyebrow="ADMIN · PRESENTATION MODE" title="管理员工作台" description="把校园信息，轻松打理好。" action={<Link className="primary" to={section.to}><Eye size={16}/>预览用户页面<ArrowRight size={15}/></Link>}/>
   <section className="demo-admin-banner"><ShieldCheck size={26}/><div><strong>{kind==='courseReviews'?'服务器课程点评审核':'学校展示模式 · 无需登录'}</strong><p>{kind==='courseReviews'?'课程点评审核连接真实服务器，需要现有管理凭证；审核通过后所有设备可见。':'可演示新增、修改、隐藏内容；保存后用户视图即时更新。修改仅存于当前浏览器，不会写入服务器。'}</p></div></section>
   <div className="demo-admin-stats">{sections.map(s=><button key={s.id} className={kind===s.id?'active':''} onClick={()=>changeKind(s.id)}><s.icon size={23}/><strong>{s.label}</strong><span>{s.id==='courseReviews'?'连接服务器审核':(s.id==='competitions'?contests:s.id==='dining'?dining.filter(d=>!d.demo):s.id==='teachers'?teachers:announcements).filter(r=>!r.hidden).length+' 项显示中'}</span></button>)}</div>
+  {kind==='competitions'&&<CompetitionArticleImport/>}
   {kind==='courseReviews'?<CourseReviewAdmin/>:<>
   {error&&<div className="error" role="alert">在线资料加载失败：{error} <button className="text-button" onClick={load}>重新加载</button>。仍可演示新增内容。</div>}
   <div className="demo-admin-toolbar"><label><Search size={17}/><input aria-label="搜索管理内容" value={query} onChange={e=>setQuery(e.target.value)} placeholder="搜索标题、菜品、教师或学院…"/></label><button className="primary" onClick={()=>setDraft(newRow(kind))}><Plus size={16}/>新增{kind==='dining'?'菜品':section.label.slice(0,2)}</button><button className="secondary" onClick={()=>{try{resetDemoContent(kind);setDraft(null);notice('本栏目已恢复原始内容，课表与集邮照片不会删除')}catch{notice('重置失败，请检查浏览器存储权限')}}}><RotateCcw size={15}/>重置本栏演示</button></div>

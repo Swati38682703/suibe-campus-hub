@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import {api} from './api';
 import {COMPETITIONS,type Competition} from './competitions-data';
-export type CompetitionSync={lastCompleted?:string;lastSuccessfulCheck?:string;status?:string;autoCount?:number;intervalHours?:number;wechat?:string;scheduleNote?:string;sources?:{name:string;url:string;status:string}[]};
+export type CompetitionSync={lastCompleted?:string;lastSuccessfulCheck?:string;status?:string;autoCount?:number;importedCount?:number;intervalHours?:number;wechat?:string;scheduleNote?:string;sources?:{name:string;url:string;status:string}[]};
 export function useCompetitions(){
  const [rows,setRows]=useState<Competition[]>(COMPETITIONS),[sync,setSync]=useState<CompetitionSync|null>(null),[error,setError]=useState('');
  useEffect(()=>{
@@ -14,8 +14,9 @@ export function useCompetitions(){
    }catch{if(live)setError('暂时无法读取更新，当前保留上次资料或随版本提供的赛事。')}
    try{const status=await api<CompetitionSync>('/competitions/sync-status');if(live)setSync(status)}catch{}
   };
+  window.addEventListener('suibe-competitions-updated',load);
   void load();const timer=window.setInterval(load,60000);
-  return()=>{live=false;window.clearInterval(timer)};
+  return()=>{window.removeEventListener('suibe-competitions-updated',load);live=false;window.clearInterval(timer)};
  },[]);
  return {rows,sync,error};
 }
