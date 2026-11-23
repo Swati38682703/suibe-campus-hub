@@ -43,6 +43,22 @@ class TimetableShare(Base):
     status: Mapped[str]=mapped_column(String(20),default='pending')
     created_at: Mapped[str]=mapped_column(String(40))
 
+class SharedGroup(Base):
+    __tablename__='shared_groups'
+    id: Mapped[str]=mapped_column(String(64),primary_key=True)
+    name: Mapped[str]=mapped_column(String(40))
+    invite_code: Mapped[str]=mapped_column(String(12),unique=True,index=True)
+    owner_id: Mapped[str]=mapped_column(String(64),index=True)
+    created_at: Mapped[str]=mapped_column(String(40))
+
+class SharedGroupMember(Base):
+    __tablename__='shared_group_members'
+    __table_args__=(UniqueConstraint('group_id','account_id'),)
+    id: Mapped[str]=mapped_column(String(64),primary_key=True)
+    group_id: Mapped[str]=mapped_column(String(64),index=True)
+    account_id: Mapped[str]=mapped_column(String(64),index=True)
+    joined_at: Mapped[str]=mapped_column(String(40))
+
 COOKIE='suibe_account'
 def now_iso():return datetime.now(timezone.utc).isoformat()
 def token_hash(value):return hashlib.sha256(value.encode()).hexdigest()
@@ -112,8 +128,21 @@ class BrowserIdentity(BaseModel):
     def named(cls,v):
         if not v.strip():raise ValueError('请填写称呼')
         return v.strip()
+class GroupCreate(BaseModel):
+    name:str=Field(min_length=1,max_length=40)
+    @field_validator('name')
+    @classmethod
+    def clean_name(cls,v):
+        if not v.strip():raise ValueError('请填写小组名称')
+        return v.strip()
+class GroupJoin(BaseModel):
+    invite_code:str=Field(min_length=6,max_length=12)
+    @field_validator('invite_code')
+    @classmethod
+    def clean_code(cls,v):return v.strip().upper()
 class GroupPlanInput(BaseModel):
-    members:list[str]=Field(min_length=1,max_length=8)
+    members:list[str]=Field(default_factory=list,max_length=8)
+    group_id:str|None=Field(default=None,max_length=64)
     date:str=Field(max_length=10)
     periods:list[int]=Field(min_length=1,max_length=14)
     consecutive:int=Field(default=2,ge=1,le=14)
@@ -139,6 +168,24 @@ def authorized_members(session,me,ids,require_own_timetable=True):
     if any(not p.timetable_updated_at for p in (people if require_own_timetable else people[1:])):raise HTTPException(409,'参与者中有人尚未同步课表，请先同步并确认课程完整')
     return people
 
+def group_people(session,me,group_id):
+    group=session.get(SharedGroup,group_id)
+    mine=session.query(SharedGroupMember).filter_by(group_id=group_id,account_id=me.id).first()
+    if not group or not mine:raise HTTPException(404,'共享小组不存在或你已退出')
+    rows=session.query(SharedGroupMember).filter_by(group_id=group_id).order_by(SharedGroupMember.joined_at).all()
+    people=[session.get(SiteAccount,row.account_id) for row in rows]
+    people=[person for person in people if person]
+    if any(not person.timetable_updated_at for person in people):raise HTTPException(409,'小组中有人尚未同步课表，请成员同步后再试')
+    return people
+
+def group_info(session,group,me):
+    rows=session.query(SharedGroupMember).filter_by(group_id=group.id).order_by(SharedGroupMember.joined_at).all()
+    members=[]
+    for row in rows:
+        person=session.get(SiteAccount,row.account_id)
+        if person:members.append(dict(**account_info(person),is_owner=person.id==group.owner_id))
+    return dict(id=group.id,name=group.name,invite_code=group.invite_code,is_owner=group.owner_id==me.id,members=members,created_at=group.created_at)
+
 def course_building(room,buildings):
     value=room.strip().upper()
     if value in buildings:return value
@@ -147,7 +194,7 @@ def course_building(room,buildings):
     return next((b['id'] for b in buildings.values() if b['name'] and b['name'] in room),None)
 
 def build_group_plan(session,me,payload):
-    people=authorized_members(session,me,payload.members)
+    people=group_people(session,me,payload.group_id) if payload.group_id else authorized_members(session,me,payload.members)
     if len(people)<2:raise HTTPException(422,'请选择至少一位已经授权的同学')
     timetable=[r for p in people for r in p.timetable]
     free=find_free_periods(payload.date,payload.periods,payload.consecutive,timetable,True)
@@ -233,6 +280,49 @@ def build_router(limited):
     def save_timetable(payload:TimetableInput,request:Request):
         with Session.begin() as session:
             account=current_account(request,session);account.timetable=[r.model_dump() for r in payload.rows];account.timetable_updated_at=now_iso();return dict(**account_info(account),timetable=account.timetable)
+    @router.get('/api/sharing/groups')
+    def groups(request:Request):
+        with Session() as session:
+            me=current_account(request,session)
+            memberships=session.query(SharedGroupMember).filter_by(account_id=me.id).all()
+            result=[]
+            for membership in memberships:
+                group=session.get(SharedGroup,membership.group_id)
+                if group:result.append(group_info(session,group,me))
+            return result
+    @router.post('/api/sharing/groups',status_code=201)
+    def create_group(payload:GroupCreate,request:Request):
+        limited(request,'group-create',5)
+        with Session.begin() as session:
+            me=current_account(request,session)
+            code=''
+            for _ in range(10):
+                candidate=secrets.token_hex(3).upper()
+                if not session.query(SharedGroup).filter_by(invite_code=candidate).first():code=candidate;break
+            if not code:raise HTTPException(503,'暂时无法生成邀请码，请稍后重试')
+            group=SharedGroup(id=secrets.token_hex(16),name=payload.name,invite_code=code,owner_id=me.id,created_at=now_iso())
+            session.add(group);session.add(SharedGroupMember(id=secrets.token_hex(16),group_id=group.id,account_id=me.id,joined_at=now_iso()));session.flush()
+            return group_info(session,group,me)
+    @router.post('/api/sharing/groups/join')
+    def join_group(payload:GroupJoin,request:Request):
+        limited(request,'group-join',10)
+        with Session.begin() as session:
+            me=current_account(request,session);group=session.query(SharedGroup).filter_by(invite_code=payload.invite_code).first()
+            if not group:raise HTTPException(404,'邀请码无效，请向组长核对')
+            if session.query(SharedGroupMember).filter_by(group_id=group.id,account_id=me.id).first():raise HTTPException(409,'你已经在这个小组中')
+            if session.query(SharedGroupMember).filter_by(group_id=group.id).count()>=8:raise HTTPException(409,'小组已满，最多8人')
+            session.add(SharedGroupMember(id=secrets.token_hex(16),group_id=group.id,account_id=me.id,joined_at=now_iso()));session.flush()
+            return group_info(session,group,me)
+    @router.delete('/api/sharing/groups/{group_id}')
+    def leave_group(group_id:str,request:Request):
+        with Session.begin() as session:
+            me=current_account(request,session);group=session.get(SharedGroup,group_id)
+            membership=session.query(SharedGroupMember).filter_by(group_id=group_id,account_id=me.id).first()
+            if not group or not membership:raise HTTPException(404,'共享小组不存在或你已退出')
+            if group.owner_id==me.id:
+                session.query(SharedGroupMember).filter_by(group_id=group_id).delete();session.delete(group)
+                return dict(ok=True,deleted=True)
+            session.delete(membership);return dict(ok=True,deleted=False)
     @router.get('/api/sharing/search')
     def find_student(student_id:str,request:Request):
         limited(request,'student-search',15)

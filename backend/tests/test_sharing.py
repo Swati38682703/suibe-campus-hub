@@ -2,7 +2,7 @@ import secrets
 import httpx
 from backend.app import sharing
 from backend.app.database import Session
-from backend.app.sharing import SiteAccount,SiteSession,TimetableShare,COOKIE
+from backend.app.sharing import SiteAccount,SiteSession,TimetableShare,SharedGroup,SharedGroupMember,COOKIE
 
 PASSWORD='campus-test-password'
 def signup(client,name='同学'):
@@ -120,3 +120,37 @@ def test_merged_week_only_includes_authorized_current_week_courses(client,monkey
     a,b,_=approved_pair(client);sync(client,a,[course('this-week'),{**course('next-week'),'weeks':'7','day':3}]);use(client,a);monkeypatch.setattr(sharing,'available_rooms',lambda *a,**k:[])
     r=client.post('/api/sharing/plan',json=payload(b));assert r.status_code==200
     rows=r.json()['merged_timetable'];assert {x['owner_id'] for x in rows}=={a['id'],b['id']};assert 'next-week' not in [x['id'] for x in rows]
+
+def test_four_people_join_group_and_calculate_shared_plan(client,monkeypatch):
+    people=[signup(client,name) for name in ['甲','乙','丙','丁']]
+    for index,person in enumerate(people):sync(client,person,[course('c'+str(index),start=2+index,end=2+index)])
+    use(client,people[0]);created=client.post('/api/sharing/groups',json={'name':'案例讨论组'})
+    assert created.status_code==201;group=created.json();assert len(group['invite_code'])==6
+    for person in people[1:]:
+        use(client,person);joined=client.post('/api/sharing/groups/join',json={'invite_code':group['invite_code'].lower()})
+        assert joined.status_code==200
+    use(client,people[0]);listed=client.get('/api/sharing/groups').json()
+    assert len(listed)==1 and len(listed[0]['members'])==4
+    monkeypatch.setattr(sharing,'available_rooms',lambda *a,**k:[])
+    planned=client.post('/api/sharing/plan',json={**payload(people[1]),'members':[],'group_id':group['id'],'periods':[1,2,3,4,5,6]})
+    assert planned.status_code==200 and len(planned.json()['participants'])==4
+
+def test_group_plan_requires_membership_and_leave_revokes_access(client,monkeypatch):
+    owner=signup(client,'组长');member=signup(client,'组员');outsider=signup(client,'路人')
+    for person in [owner,member,outsider]:sync(client,person,[])
+    use(client,owner);group=client.post('/api/sharing/groups',json={'name':'学习组'}).json()
+    use(client,member);assert client.post('/api/sharing/groups/join',json={'invite_code':group['invite_code']}).status_code==200
+    monkeypatch.setattr(sharing,'available_rooms',lambda *a,**k:[])
+    body={**payload(owner),'members':[],'group_id':group['id']}
+    use(client,outsider);assert client.post('/api/sharing/plan',json=body).status_code==404
+    use(client,member);assert client.delete('/api/sharing/groups/'+group['id']).json()['deleted'] is False
+    assert client.post('/api/sharing/plan',json=body).status_code==404
+
+def test_group_owner_delete_removes_group_and_memberships(client):
+    owner=signup(client,'组长');member=signup(client,'组员');use(client,owner)
+    group=client.post('/api/sharing/groups',json={'name':'临时组'}).json();use(client,member)
+    client.post('/api/sharing/groups/join',json={'invite_code':group['invite_code']});use(client,owner)
+    assert client.delete('/api/sharing/groups/'+group['id']).json()['deleted'] is True
+    with Session() as session:
+        assert session.get(SharedGroup,group['id']) is None
+        assert session.query(SharedGroupMember).filter_by(group_id=group['id']).count()==0
