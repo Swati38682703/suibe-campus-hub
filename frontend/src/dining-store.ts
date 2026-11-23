@@ -26,6 +26,13 @@ export async function savePassportEntry(value:PassportEntry): Promise<void> {
     tx.oncomplete=()=>resolve();tx.onerror=()=>reject(new Error('保存每日护照失败'));tx.onabort=()=>reject(new Error('保存已中止，请重试'));
   });} finally {db.close();}
 }
+export async function deletePassportEntry(entryId:string): Promise<void> {
+  const db=await database();
+  try {await new Promise<void>((resolve,reject)=>{
+    const tx=db.transaction('diary','readwrite');tx.objectStore('diary').delete(entryId);
+    tx.oncomplete=()=>resolve();tx.onerror=()=>reject(new Error('删除护照照片失败'));tx.onabort=()=>reject(new Error('删除已中止，请重试'));
+  });} finally {db.close();}
+}
 export async function stamps(): Promise<Stamp[]> {
   const db=await database();
   try {return await new Promise((resolve,reject)=>{
