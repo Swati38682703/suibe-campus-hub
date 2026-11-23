@@ -1,11 +1,30 @@
 export interface Stamp {id: string; photo: string; date: string}
+export type MealPeriod='morning'|'noon'|'afternoon';
+export interface PassportEntry {entryId:string;dishId:string;name:string;restaurant:string;window:string;photo:string;date:string;meal:MealPeriod;photoStyle?:'frame'|'sticker'}
 function database(): Promise<IDBDatabase> {
   return new Promise((resolve,reject)=>{
-    const request=indexedDB.open('suibe-food-passport',1);
-    request.onupgradeneeded=()=>request.result.createObjectStore('stamps',{keyPath:'id'});
+    const request=indexedDB.open('suibe-food-passport',2);
+    request.onupgradeneeded=()=>{
+      if(!request.result.objectStoreNames.contains('stamps'))request.result.createObjectStore('stamps',{keyPath:'id'});
+      if(!request.result.objectStoreNames.contains('diary'))request.result.createObjectStore('diary',{keyPath:'entryId'});
+    };
     request.onsuccess=()=>resolve(request.result);
     request.onerror=()=>reject(new Error('无法打开照片存储，请检查浏览器存储权限'));
   });
+}
+export async function passportEntries(): Promise<PassportEntry[]> {
+  const db=await database();
+  try {return await new Promise((resolve,reject)=>{
+    const tx=db.transaction('diary','readonly'),request=tx.objectStore('diary').getAll();
+    tx.oncomplete=()=>resolve(request.result);tx.onerror=()=>reject(new Error('读取每日护照失败'));
+  });} finally {db.close();}
+}
+export async function savePassportEntry(value:PassportEntry): Promise<void> {
+  const db=await database();
+  try {await new Promise<void>((resolve,reject)=>{
+    const tx=db.transaction('diary','readwrite');tx.objectStore('diary').put(value);
+    tx.oncomplete=()=>resolve();tx.onerror=()=>reject(new Error('保存每日护照失败'));tx.onabort=()=>reject(new Error('保存已中止，请重试'));
+  });} finally {db.close();}
 }
 export async function stamps(): Promise<Stamp[]> {
   const db=await database();
